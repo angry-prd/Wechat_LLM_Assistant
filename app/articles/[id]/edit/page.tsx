@@ -138,13 +138,13 @@ const styles = {
     height: 'calc(100% - 80px)',
   },
   editorColumn: {
-    flex: '1',
+    flex: '3',
     display: 'flex',
     flexDirection: 'column' as const,
     height: '100%',
   },
   previewColumn: {
-    flex: '1',
+    flex: '2',
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const,
@@ -164,6 +164,14 @@ const styles = {
     borderRadius: '6px',
     border: '1px solid #d1d5db',
     fontSize: '0.875rem',
+  },
+  statusSelect: {
+    padding: '10px 12px',
+    borderRadius: '6px',
+    border: '1px solid #d1d5db',
+    fontSize: '0.875rem',
+    backgroundColor: 'white',
+    color: '#374151',
   },
   buttonContainer: {
     display: 'flex',
@@ -203,14 +211,6 @@ const styles = {
   previewIcon: {
     color: '#2563eb',
   },
-  statusSelect: {
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '0.875rem',
-    backgroundColor: 'white',
-    color: '#374151',
-  },
 };
 
 export default function EditArticlePage() {
@@ -222,9 +222,13 @@ export default function EditArticlePage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('write');
+  
+  // 确保组件挂载后才渲染预览，避免服务器端渲染问题
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    
     // 在实际应用中，这里会从API获取文章详情
     // 这里使用模拟数据
     const fetchArticle = () => {
@@ -340,12 +344,14 @@ export default function EditArticlePage() {
               <span>微信公众号预览</span>
             </div>
             <div style={{ flex: 1 }}>
-              <PhonePreview 
-                title={title} 
-                content={content} 
-                darkMode={darkMode}
-                onToggleDarkMode={() => setDarkMode(!darkMode)}
-              />
+              {isMounted && (
+                <PhonePreview 
+                  title={title} 
+                  content={content} 
+                  darkMode={darkMode}
+                  onToggleDarkMode={() => setDarkMode(!darkMode)}
+                />
+              )}
             </div>
           </div>
         </div>

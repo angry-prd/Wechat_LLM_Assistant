@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaSave, FaMobileAlt } from 'react-icons/fa';
@@ -44,13 +44,13 @@ const styles = {
     height: 'calc(100% - 80px)',
   },
   editorColumn: {
-    flex: '1',
+    flex: '3',
     display: 'flex',
     flexDirection: 'column' as const,
     height: '100%',
   },
   previewColumn: {
-    flex: '1',
+    flex: '2',
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const,
@@ -121,6 +121,13 @@ export default function CreateArticlePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+
+  // 确保组件挂载后才渲染预览，避免服务器端渲染问题
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent, status: string) => {
     e.preventDefault();
@@ -196,12 +203,14 @@ export default function CreateArticlePage() {
               <span>微信公众号预览</span>
             </div>
             <div style={{ flex: 1 }}>
-              <PhonePreview 
-                title={title} 
-                content={content} 
-                darkMode={darkMode}
-                onToggleDarkMode={() => setDarkMode(!darkMode)}
-              />
+              {isMounted && (
+                <PhonePreview 
+                  title={title} 
+                  content={content} 
+                  darkMode={darkMode}
+                  onToggleDarkMode={() => setDarkMode(!darkMode)}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -21,10 +21,13 @@ const PhonePreview: React.FC<PhonePreviewProps> = ({
       flexDirection: 'column' as const,
       height: '100%',
       position: 'relative' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     phoneFrame: {
-      width: '100%',
-      height: '100%',
+      width: '375px', // 标准iPhone宽度
+      height: '80%',
+      maxHeight: '700px',
       borderRadius: '36px',
       border: '10px solid #333',
       overflow: 'hidden',
@@ -131,6 +134,23 @@ const PhonePreview: React.FC<PhonePreviewProps> = ({
       marginBottom: '16px',
       fontStyle: 'italic',
       color: darkMode ? '#aaa' : '#666',
+    },
+    link: {
+      color: darkMode ? '#4da3ff' : '#0066cc',
+      textDecoration: 'none',
+    },
+    code: {
+      backgroundColor: darkMode ? '#2d2d2d' : '#f5f5f5',
+      padding: '2px 4px',
+      borderRadius: '3px',
+      fontFamily: 'monospace',
+      fontSize: '0.9em',
+    },
+    strong: {
+      fontWeight: 'bold',
+    },
+    em: {
+      fontStyle: 'italic',
     },
   };
 
@@ -259,22 +279,92 @@ const PhonePreview: React.FC<PhonePreviewProps> = ({
       
       // 处理粗体和斜体
       let content = line;
-      // 粗体
-      content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      // 斜体
-      content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      // 行内代码
-      content = content.replace(/`(.*?)`/g, '<code>$1</code>');
-      // 链接
-      content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+      
+      // 使用自定义渲染而不是dangerouslySetInnerHTML
+      // 解析行内元素
+      const renderInlineElements = (text: string) => {
+        let result: (string | JSX.Element)[] = [text];
+        
+        // 处理粗体
+        result = result.flatMap(item => {
+          if (typeof item !== 'string') return [item];
+          return item.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              const content = part.slice(2, -2);
+              return <strong key={`strong-${i}`} style={styles.strong}>{content}</strong>;
+            }
+            return part;
+          });
+        });
+        
+        // 处理斜体
+        result = result.flatMap(item => {
+          if (typeof item !== 'string') return [item];
+          return item.split(/(\*.*?\*)/g).map((part, i) => {
+            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+              const content = part.slice(1, -1);
+              return <em key={`em-${i}`} style={styles.em}>{content}</em>;
+            }
+            return part;
+          });
+        });
+        
+        // 处理行内代码
+        result = result.flatMap(item => {
+          if (typeof item !== 'string') return [item];
+          return item.split(/(`.*?`)/g).map((part, i) => {
+            if (part.startsWith('`') && part.endsWith('`')) {
+              const content = part.slice(1, -1);
+              return <code key={`code-${i}`} style={styles.code}>{content}</code>;
+            }
+            return part;
+          });
+        });
+        
+        // 处理链接
+        result = result.flatMap(item => {
+          if (typeof item !== 'string') return [item];
+          const parts: (string | JSX.Element)[] = [];
+          let lastIndex = 0;
+          const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+          let match;
+          
+          while ((match = linkRegex.exec(item)) !== null) {
+            if (match.index > lastIndex) {
+              parts.push(item.substring(lastIndex, match.index));
+            }
+            
+            const [fullMatch, text, url] = match;
+            parts.push(
+              <a 
+                key={`link-${match.index}`} 
+                href={url} 
+                style={styles.link}
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                {text}
+              </a>
+            );
+            
+            lastIndex = match.index + fullMatch.length;
+          }
+          
+          if (lastIndex < item.length) {
+            parts.push(item.substring(lastIndex));
+          }
+          
+          return parts;
+        });
+        
+        return result;
+      };
       
       // 默认作为段落处理
       elements.push(
-        <p 
-          key={index} 
-          style={styles.paragraph}
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <p key={index} style={styles.paragraph}>
+          {renderInlineElements(content)}
+        </p>
       );
     });
 
