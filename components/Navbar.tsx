@@ -122,8 +122,12 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // 标记客户端渲染已完成
+    setIsClient(true);
+    
     // 在客户端检测窗口大小
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 640);
@@ -145,6 +149,42 @@ export default function Navbar() {
     { name: '系统配置', href: '/settings', icon: <FaCog size={16} style={{ marginRight: '8px' }} /> },
   ];
 
+  // 在服务器端渲染时，显示默认的桌面导航
+  if (!isClient) {
+    return (
+      <nav style={styles.nav}>
+        <div style={styles.container}>
+          <div style={styles.flexBetween}>
+            <div style={styles.flex}>
+              <div style={styles.logoContainer}>
+                <Link href="/" style={styles.logo}>
+                  <FaWeixin size={24} style={styles.logoIcon} />
+                  <span style={styles.logoText}>微信AI助手</span>
+                </Link>
+              </div>
+              <div style={styles.desktopMenu}>
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={{
+                      ...styles.navItem,
+                      ...(pathname === item.href ? styles.navItemActive : styles.navItemInactive),
+                    }}
+                  >
+                    {item.icon}
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // 客户端渲染，包含响应式导航
   return (
     <nav style={styles.nav}>
       <div style={styles.container}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaPen, FaRobot, FaWeixin } from 'react-icons/fa';
 
@@ -121,12 +121,17 @@ const styles = {
 
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const features = [
     {
       id: 1,
       title: 'AI文章生成',
-      description: '利用先进的AI大模型，快速生成高质量的文章内容',
+      description: '利用AI大模型，快速生成高质量的文章内容',
       icon: <FaRobot size={24} color="#2563eb" />,
       link: '/ai-generator'
     },
@@ -151,7 +156,7 @@ export default function Home() {
       <div style={styles.header}>
         <h1 style={styles.title}>欢迎使用微信AI助手</h1>
         <p style={styles.subtitle}>
-          一个集成了AI大模型和markdown编辑器的微信公众号推文系统
+          一个集成了AI大模型和Markdown编辑器的微信公众号推文助手
         </p>
         <div style={styles.buttonContainer}>
           <Link href="/ai-generator" style={styles.primaryButton}>
@@ -173,10 +178,10 @@ export default function Home() {
             <div 
               style={{
                 ...styles.featureCard,
-                ...(hoveredCard === feature.id ? styles.featureCardHovered : {})
+                ...(isClient && hoveredCard === feature.id ? styles.featureCardHovered : {})
               }}
-              onMouseEnter={() => setHoveredCard(feature.id)}
-              onMouseLeave={() => setHoveredCard(null)}
+              onMouseEnter={() => isClient && setHoveredCard(feature.id)}
+              onMouseLeave={() => isClient && setHoveredCard(null)}
             >
               <div style={styles.featureIcon}>
                 {feature.icon}
