@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaSave } from 'react-icons/fa';
+import { FaArrowLeft, FaSave, FaMobileAlt } from 'react-icons/fa';
+import MarkdownEditor from '../../../../components/MarkdownEditor';
+import PhonePreview from '../../../../components/PhonePreview';
 
 // 模拟文章数据
 const mockArticles = [
@@ -102,9 +104,12 @@ const mockArticles = [
 // 内联样式
 const styles = {
   container: {
-    maxWidth: '1200px',
+    maxWidth: '1400px',
     margin: '0 auto',
     padding: '24px 16px',
+    height: 'calc(100vh - 100px)',
+    display: 'flex',
+    flexDirection: 'column' as const,
   },
   header: {
     display: 'flex',
@@ -126,14 +131,26 @@ const styles = {
     fontSize: '0.875rem',
     transition: 'color 0.3s',
   },
-  form: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '24px',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+  contentContainer: {
+    display: 'flex',
+    flex: 1,
+    gap: '24px',
+    height: 'calc(100% - 80px)',
+  },
+  editorColumn: {
+    flex: '1',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    height: '100%',
+  },
+  previewColumn: {
+    flex: '1',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column' as const,
   },
   formGroup: {
-    marginBottom: '20px',
+    marginBottom: '16px',
   },
   label: {
     display: 'block',
@@ -148,21 +165,11 @@ const styles = {
     border: '1px solid #d1d5db',
     fontSize: '0.875rem',
   },
-  textarea: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '0.875rem',
-    minHeight: '400px',
-    resize: 'vertical' as const,
-    fontFamily: 'monospace',
-  },
   buttonContainer: {
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '12px',
-    marginTop: '24px',
+    marginTop: '16px',
   },
   button: {
     display: 'flex',
@@ -185,52 +192,16 @@ const styles = {
     border: '1px solid #d1d5db',
     textDecoration: 'none',
   },
-  tabContainer: {
+  previewHeader: {
     display: 'flex',
-    borderBottom: '1px solid #e5e7eb',
+    alignItems: 'center',
+    gap: '8px',
     marginBottom: '16px',
+    color: '#4b5563',
+    fontSize: '0.875rem',
   },
-  tab: {
-    padding: '8px 16px',
-    cursor: 'pointer',
-    color: '#6b7280',
-    borderBottom: '2px solid transparent',
-    transition: 'all 0.3s',
-  },
-  activeTab: {
+  previewIcon: {
     color: '#2563eb',
-    borderBottom: '2px solid #2563eb',
-  },
-  previewContainer: {
-    backgroundColor: '#f9fafb',
-    padding: '16px',
-    borderRadius: '6px',
-    minHeight: '400px',
-  },
-  previewTitle: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    marginBottom: '16px',
-  },
-  previewContent: {
-    lineHeight: '1.6',
-  },
-  heading1: {
-    fontSize: '1.875rem',
-    fontWeight: 'bold',
-    marginTop: '32px',
-    marginBottom: '16px',
-    color: '#111827',
-  },
-  heading2: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    marginTop: '24px',
-    marginBottom: '12px',
-    color: '#1f2937',
-  },
-  paragraph: {
-    marginBottom: '16px',
   },
   statusSelect: {
     padding: '10px 12px',
@@ -250,6 +221,7 @@ export default function EditArticlePage() {
   const [content, setContent] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState('write');
 
   useEffect(() => {
@@ -278,32 +250,6 @@ export default function EditArticlePage() {
     // 模拟保存成功后跳转到文章详情页
     alert('文章更新成功！');
     router.push(`/articles/${params.id}`);
-  };
-
-  // 简单的Markdown渲染函数
-  const renderMarkdown = (content: string) => {
-    if (!content) return null;
-
-    // 将Markdown内容按行分割
-    const lines = content.split('\n');
-    
-    return lines.map((line, index) => {
-      // 处理标题
-      if (line.startsWith('# ')) {
-        return <h1 key={index} style={styles.heading1}>{line.substring(2)}</h1>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={index} style={styles.heading2}>{line.substring(3)}</h2>;
-      }
-      
-      // 处理空行
-      if (line.trim() === '') {
-        return <br key={index} />;
-      }
-      
-      // 默认作为段落处理
-      return <p key={index} style={styles.paragraph}>{line}</p>;
-    });
   };
 
   if (loading) {
@@ -336,86 +282,72 @@ export default function EditArticlePage() {
         </Link>
       </div>
 
-      <form style={styles.form} onSubmit={handleSubmit}>
-        <div style={styles.formGroup}>
-          <label htmlFor="title" style={styles.label}>文章标题</label>
-          <input
-            type="text"
-            id="title"
-            style={styles.input}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="请输入文章标题"
-            required
-          />
-        </div>
+      <form style={{ height: '100%' }} onSubmit={handleSubmit}>
+        <div style={styles.contentContainer}>
+          {/* 左侧编辑区域 */}
+          <div style={styles.editorColumn}>
+            <div style={styles.formGroup}>
+              <label htmlFor="title" style={styles.label}>文章标题</label>
+              <input
+                type="text"
+                id="title"
+                style={styles.input}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="请输入文章标题"
+                required
+              />
+            </div>
 
-        <div style={styles.formGroup}>
-          <label htmlFor="status" style={styles.label}>文章状态</label>
-          <select
-            id="status"
-            style={styles.statusSelect}
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="草稿">草稿</option>
-            <option value="已发布">已发布</option>
-          </select>
-        </div>
+            <div style={styles.formGroup}>
+              <label htmlFor="status" style={styles.label}>文章状态</label>
+              <select
+                id="status"
+                style={styles.statusSelect}
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="草稿">草稿</option>
+                <option value="已发布">已发布</option>
+              </select>
+            </div>
+            
+            <div style={{ flex: 1 }}>
+              <MarkdownEditor 
+                value={content} 
+                onChange={setContent} 
+              />
+            </div>
 
-        <div style={styles.tabContainer}>
-          <div 
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'write' ? styles.activeTab : {})
-            }}
-            onClick={() => setActiveTab('write')}
-          >
-            编写
-          </div>
-          <div 
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'preview' ? styles.activeTab : {})
-            }}
-            onClick={() => setActiveTab('preview')}
-          >
-            预览
-          </div>
-        </div>
-
-        {activeTab === 'write' ? (
-          <div style={styles.formGroup}>
-            <label htmlFor="content" style={styles.label}>文章内容 (支持Markdown格式)</label>
-            <textarea
-              id="content"
-              style={styles.textarea}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="请输入文章内容，支持Markdown格式"
-              required
-            />
-          </div>
-        ) : (
-          <div style={styles.previewContainer}>
-            {title && <h2 style={styles.previewTitle}>{title}</h2>}
-            <div style={styles.previewContent}>
-              {renderMarkdown(content)}
+            <div style={styles.buttonContainer}>
+              <Link href={`/articles/${params.id}`} style={{...styles.button, ...styles.cancelButton}}>
+                取消
+              </Link>
+              <button 
+                type="submit" 
+                style={{...styles.button, ...styles.saveButton}}
+              >
+                <FaSave size={16} />
+                <span>保存更改</span>
+              </button>
             </div>
           </div>
-        )}
 
-        <div style={styles.buttonContainer}>
-          <Link href={`/articles/${params.id}`} style={{...styles.button, ...styles.cancelButton}}>
-            取消
-          </Link>
-          <button 
-            type="submit" 
-            style={{...styles.button, ...styles.saveButton}}
-          >
-            <FaSave size={16} />
-            <span>保存更改</span>
-          </button>
+          {/* 右侧预览区域 */}
+          <div style={styles.previewColumn}>
+            <div style={styles.previewHeader}>
+              <FaMobileAlt size={16} style={styles.previewIcon} />
+              <span>微信公众号预览</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <PhonePreview 
+                title={title} 
+                content={content} 
+                darkMode={darkMode}
+                onToggleDarkMode={() => setDarkMode(!darkMode)}
+              />
+            </div>
+          </div>
         </div>
       </form>
     </div>

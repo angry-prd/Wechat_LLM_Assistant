@@ -154,16 +154,13 @@ export default function Home() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>欢迎使用微信AI助手</h1>
+        <h1 style={styles.title}>欢迎使用微信公众号AI助手</h1>
         <p style={styles.subtitle}>
           一个集成了AI大模型和Markdown编辑器的微信公众号推文助手
         </p>
         <div style={styles.buttonContainer}>
           <Link href="/ai-generator" style={styles.primaryButton}>
             开始使用
-          </Link>
-          <Link href="/settings" style={styles.secondaryButton}>
-            系统配置
           </Link>
         </div>
       </div>
