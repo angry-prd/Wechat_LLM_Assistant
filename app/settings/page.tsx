@@ -1,516 +1,349 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FaSave, FaKey, FaLink, FaWeixin, FaRobot, FaInfoCircle } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Navbar from '@/components/Navbar';
+import Sidebar from '@/components/Sidebar';
 
-// 内联样式
-const styles = {
-  container: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    padding: '24px 16px',
-  },
-  title: {
-    fontSize: '1.875rem',
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: '24px',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    padding: '24px',
-    marginBottom: '24px',
-  },
-  sectionTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  formGroup: {
-    marginBottom: '16px',
-  },
-  label: {
-    display: 'block',
-    fontSize: '0.875rem',
-    fontWeight: 'medium',
-    color: '#374151',
-    marginBottom: '6px',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '0.875rem',
-    outline: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  inputFocus: {
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)',
-  },
-  select: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '0.875rem',
-    backgroundColor: 'white',
-    outline: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  button: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    width: '100%',
-    padding: '12px',
-    borderRadius: '6px',
-    fontWeight: 'medium',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s',
-    backgroundColor: '#2563eb',
-    color: 'white',
-    border: 'none',
-  },
-  buttonDisabled: {
-    backgroundColor: '#9ca3af',
-    cursor: 'not-allowed',
-  },
-  message: {
-    padding: '12px',
-    borderRadius: '6px',
-    marginBottom: '16px',
-  },
-  successMessage: {
-    backgroundColor: '#f0fdf4',
-    color: '#166534',
-    border: '1px solid #86efac',
-  },
-  errorMessage: {
-    backgroundColor: '#fef2f2',
-    color: '#b91c1c',
-    border: '1px solid #fca5a5',
-  },
-  infoBox: {
-    marginTop: '24px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '6px',
-    padding: '16px',
-  },
-  infoTitle: {
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    color: '#374151',
-    marginBottom: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  infoText: {
-    fontSize: '0.875rem',
-    color: '#4b5563',
-    marginBottom: '8px',
-  },
-  infoItem: {
-    marginBottom: '12px',
-  },
-  infoItemTitle: {
-    fontWeight: 'bold',
-  },
-};
+interface ModelConfig {
+  id: string;
+  name: string;
+  endpoint: string;
+  model: string;
+  hasApiKey: boolean;
+  isDefault?: boolean;
+}
 
 export default function Settings() {
-  const [config, setConfig] = useState({
-    // OpenAI配置
-    openaiApiKey: '',
-    openaiApiUrl: 'https://api.openai.com/v1',
-    openaiModel: 'gpt-3.5-turbo',
-    
-    // 微信公众号配置
-    wechatAppId: '',
-    wechatAppSecret: '',
-    wechatToken: '',
-    wechatEncodingAESKey: '',
-    
-    // 其他配置
-    defaultArticleAuthor: '管理员',
-    defaultArticleCopyright: '© 2025 微信AI助手',
+  const router = useRouter();
+  const [models, setModels] = useState<ModelConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingModel, setEditingModel] = useState<null | ModelConfig>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 表单状态
+  const [formData, setFormData] = useState({
+    id: '',
+    name: '',
+    apiKey: '',
+    endpoint: '',
+    model: '',
+    isDefault: false
   });
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-  const [userId] = useState('demo_user'); // 这里应该使用实际的用户ID
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    fetchConfig();
-    checkBackendConnection();
-  }, []);
-
-  const checkBackendConnection = async () => {
+  // 加载模型配置
+  const fetchModels = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/user-config/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      setIsConnected(response.ok);
-    } catch (error) {
-      console.error('后端连接失败:', error);
-      setIsConnected(false);
-    }
-  };
-
-  const fetchConfig = async () => {
-    try {
-      // 尝试从后端获取配置
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/user-config/${userId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setConfig({
-            openaiApiKey: data.openaiApiKey || '',
-            openaiApiUrl: data.openaiApiUrl || 'https://api.openai.com/v1',
-            openaiModel: data.openaiModel || 'gpt-3.5-turbo',
-            wechatAppId: data.wechatAppId || '',
-            wechatAppSecret: data.wechatAppSecret || '',
-            wechatToken: data.wechatToken || '',
-            wechatEncodingAESKey: data.wechatEncodingAESKey || '',
-            defaultArticleAuthor: data.defaultArticleAuthor || '管理员',
-            defaultArticleCopyright: data.defaultArticleCopyright || '© 2025 微信AI助手',
-          });
-          console.log('从后端获取配置成功');
-          return;
-        }
-      } catch (error) {
-        console.error('从后端获取配置失败:', error);
-      }
+      setIsLoading(true);
+      const response = await fetch('/api/chat-models');
+      const result = await response.json();
       
-      // 如果后端获取失败，尝试从localStorage获取
-      const configStr = localStorage.getItem('userConfig');
-      if (configStr) {
-        try {
-          const localConfig = JSON.parse(configStr);
-          setConfig(prev => ({
-            ...prev,
-            ...localConfig
-          }));
-          console.log('从localStorage获取配置成功');
-        } catch (error) {
-          console.error('解析localStorage配置失败:', error);
-        }
-      }
-    } catch (error) {
-      console.error('获取配置失败:', error);
-      setMessage('获取配置失败');
-      setMessageType('error');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
-
-    try {
-      // 保存到localStorage
-      localStorage.setItem('userConfig', JSON.stringify(config));
-      
-      // 尝试保存到后端
-      if (isConnected) {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/user-config/${userId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(config),
-          });
-
-          if (response.ok) {
-            setMessage('配置保存成功！已同步到服务器');
-            setMessageType('success');
-          } else {
-            throw new Error('保存到服务器失败');
-          }
-        } catch (error) {
-          console.error('保存到服务器失败:', error);
-          setMessage('配置已保存到本地，但同步到服务器失败');
-          setMessageType('error');
-        }
+      if (result.success) {
+        setModels(result.data);
       } else {
-        setMessage('配置已保存到本地（未连接到服务器）');
-        setMessageType('success');
+        console.error('获取模型失败:', result.message);
       }
     } catch (error) {
-      console.error('保存配置失败:', error);
-      setMessage('保存配置失败，请重试');
-      setMessageType('error');
+      console.error('获取模型错误:', error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  
+  useEffect(() => {
+    fetchModels();
+  }, []);
+  
+  // 打开新建模型表单
+  const openNewModelForm = () => {
+    setFormData({
+      id: '',
+      name: '',
+      apiKey: '',
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      model: 'gpt-3.5-turbo',
+      isDefault: models.length === 0 // 如果没有模型，默认设为默认
+    });
+    setEditingModel(null);
+    setIsModalOpen(true);
   };
-
+  
+  // 打开编辑模型表单
+  const openEditModelForm = (model: ModelConfig) => {
+    setFormData({
+      id: model.id,
+      name: model.name,
+      apiKey: '', // 不回显API密钥
+      endpoint: model.endpoint,
+      model: model.model,
+      isDefault: model.isDefault || false
+    });
+    setEditingModel(model);
+    setIsModalOpen(true);
+  };
+  
+  // 处理表单输入变化
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    });
+  };
+  
+  // 保存模型配置
+  const saveModelConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const url = '/api/chat-models';
+      const method = editingModel ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setIsModalOpen(false);
+        fetchModels(); // 重新加载模型列表
+      } else {
+        alert(`保存失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('保存模型配置错误:', error);
+      alert('保存模型配置失败，请稍后再试');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // 删除模型配置
+  const deleteModel = async (id: string) => {
+    if (!window.confirm('确定要删除此模型配置吗？')) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`/api/chat-models?id=${id}`, {
+        method: 'DELETE'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        fetchModels(); // 重新加载模型列表
+      } else {
+        alert(`删除失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('删除模型配置错误:', error);
+      alert('删除模型配置失败，请稍后再试');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // 返回聊天页面
+  const goToChat = () => {
+    router.push('/ai-chat');
+  };
+  
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>系统配置</h1>
-
-      <form onSubmit={handleSubmit}>
-        {message && (
-          <div style={{
-            ...styles.message,
-            ...(messageType === 'success' ? styles.successMessage : styles.errorMessage)
-          }}>
-            {message}
-          </div>
-        )}
-
-        {!isConnected && (
-          <div style={{
-            ...styles.message,
-            backgroundColor: '#fff8e6',
-            color: '#854d0e',
-            border: '1px solid #fef3c7',
-            marginBottom: '16px',
-          }}>
-            <FaInfoCircle style={{ marginRight: '8px' }} />
-            未连接到后端服务器，配置将只保存在本地浏览器中
-          </div>
-        )}
-
-        {/* OpenAI配置 */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            <FaRobot size={18} />
-            <span>OpenAI配置</span>
-          </h2>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="openaiApiKey" style={styles.label}>
-              API密钥
-            </label>
-            <input
-              type="password"
-              id="openaiApiKey"
-              name="openaiApiKey"
-              value={config.openaiApiKey}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入OpenAI API密钥"
-            />
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Navbar />
+        <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">聊天模型配置</h1>
+            <div className="flex space-x-4">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={openNewModelForm}
+              >
+                添加模型
+              </button>
+              <button
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                onClick={goToChat}
+              >
+                返回聊天
+              </button>
+            </div>
           </div>
           
-          <div style={styles.formGroup}>
-            <label htmlFor="openaiApiUrl" style={styles.label}>
-              API地址
-            </label>
-            <input
-              type="text"
-              id="openaiApiUrl"
-              name="openaiApiUrl"
-              value={config.openaiApiUrl}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入OpenAI API地址"
-            />
-          </div>
+          {isLoading && models.length === 0 ? (
+            <div className="flex justify-center py-10">
+              <p className="text-gray-500">加载中...</p>
+            </div>
+          ) : models.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <p className="text-lg text-gray-600 mb-4">暂无配置的聊天模型</p>
+              <p className="text-gray-500 mb-6">
+                添加一个模型配置以开始使用聊天功能
+              </p>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={openNewModelForm}
+              >
+                添加第一个模型
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {models.map((model) => (
+                <div key={model.id} className="bg-white rounded-lg shadow p-4">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-semibold">{model.name}</h3>
+                    {model.isDefault && (
+                      <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                        默认
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-600 mb-4">
+                    <p><span className="font-semibold">API端点:</span> {model.endpoint}</p>
+                    <p><span className="font-semibold">模型:</span> {model.model}</p>
+                    <p>
+                      <span className="font-semibold">API密钥:</span>{' '}
+                      {model.hasApiKey ? '******' : '未设置'}
+                    </p>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      onClick={() => openEditModelForm(model)}
+                    >
+                      编辑
+                    </button>
+                    <button
+                      className="px-3 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      onClick={() => deleteModel(model.id)}
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           
-          <div style={styles.formGroup}>
-            <label htmlFor="openaiModel" style={styles.label}>
-              模型
-            </label>
-            <select
-              id="openaiModel"
-              name="openaiModel"
-              value={config.openaiModel}
-              onChange={handleInputChange}
-              style={styles.select}
-            >
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              <option value="gpt-4">GPT-4</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo</option>
-            </select>
-          </div>
-        </div>
-
-        {/* 微信公众号配置 */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            <FaWeixin size={18} />
-            <span>微信公众号配置</span>
-          </h2>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="wechatAppId" style={styles.label}>
-              AppID
-            </label>
-            <input
-              type="text"
-              id="wechatAppId"
-              name="wechatAppId"
-              value={config.wechatAppId}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入微信公众号AppID"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="wechatAppSecret" style={styles.label}>
-              AppSecret
-            </label>
-            <input
-              type="password"
-              id="wechatAppSecret"
-              name="wechatAppSecret"
-              value={config.wechatAppSecret}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入微信公众号AppSecret"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="wechatToken" style={styles.label}>
-              Token
-            </label>
-            <input
-              type="text"
-              id="wechatToken"
-              name="wechatToken"
-              value={config.wechatToken}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入微信公众号Token"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="wechatEncodingAESKey" style={styles.label}>
-              EncodingAESKey
-            </label>
-            <input
-              type="text"
-              id="wechatEncodingAESKey"
-              name="wechatEncodingAESKey"
-              value={config.wechatEncodingAESKey}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入微信公众号EncodingAESKey"
-            />
-          </div>
-        </div>
-
-        {/* 其他配置 */}
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            <FaKey size={18} />
-            <span>其他配置</span>
-          </h2>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="defaultArticleAuthor" style={styles.label}>
-              默认文章作者
-            </label>
-            <input
-              type="text"
-              id="defaultArticleAuthor"
-              name="defaultArticleAuthor"
-              value={config.defaultArticleAuthor}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入默认文章作者"
-            />
-          </div>
-          
-          <div style={styles.formGroup}>
-            <label htmlFor="defaultArticleCopyright" style={styles.label}>
-              默认版权信息
-            </label>
-            <input
-              type="text"
-              id="defaultArticleCopyright"
-              name="defaultArticleCopyright"
-              value={config.defaultArticleCopyright}
-              onChange={handleInputChange}
-              style={styles.input}
-              placeholder="请输入默认版权信息"
-            />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          style={{
-            ...styles.button,
-            ...(isLoading ? styles.buttonDisabled : {})
-          }}
-        >
-          <FaSave size={16} />
-          <span>{isLoading ? '保存中...' : '保存配置'}</span>
-        </button>
-      </form>
-
-      <div style={styles.infoBox}>
-        <h3 style={styles.infoTitle}>
-          <FaInfoCircle size={16} />
-          <span>配置说明</span>
-        </h3>
-        
-        <div style={styles.infoItem}>
-          <p style={{...styles.infoText, ...styles.infoItemTitle}}>OpenAI配置</p>
-          <p style={styles.infoText}>
-            <strong>API密钥：</strong>从OpenAI官网获取的API密钥，用于调用AI服务。
-          </p>
-          <p style={styles.infoText}>
-            <strong>API地址：</strong>OpenAI API的接口地址，默认为 https://api.openai.com/v1。
-          </p>
-          <p style={styles.infoText}>
-            <strong>模型：</strong>选择要使用的OpenAI模型，不同模型有不同的能力和价格。
-          </p>
-        </div>
-        
-        <div style={styles.infoItem}>
-          <p style={{...styles.infoText, ...styles.infoItemTitle}}>微信公众号配置</p>
-          <p style={styles.infoText}>
-            <strong>AppID：</strong>从微信公众平台获取的AppID，用于发布文章。
-          </p>
-          <p style={styles.infoText}>
-            <strong>AppSecret：</strong>从微信公众平台获取的AppSecret，用于发布文章。
-          </p>
-          <p style={styles.infoText}>
-            <strong>Token：</strong>微信公众平台配置的Token，用于验证请求。
-          </p>
-          <p style={styles.infoText}>
-            <strong>EncodingAESKey：</strong>微信公众平台配置的消息加解密密钥。
-          </p>
+          {/* 模型配置表单模态框 */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+                <h2 className="text-xl font-semibold mb-4">
+                  {editingModel ? '编辑模型配置' : '添加新模型配置'}
+                </h2>
+                <form onSubmit={saveModelConfig}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        名称
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="模型名称 (例如: GPT-3.5)"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        API密钥
+                      </label>
+                      <input
+                        type="password"
+                        name="apiKey"
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={editingModel ? '留空以保持不变' : 'API密钥'}
+                        value={formData.apiKey}
+                        onChange={handleInputChange}
+                        required={!editingModel}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        API端点
+                      </label>
+                      <input
+                        type="url"
+                        name="endpoint"
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://api.example.com/v1/chat/completions"
+                        value={formData.endpoint}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        模型标识符
+                      </label>
+                      <input
+                        type="text"
+                        name="model"
+                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="gpt-3.5-turbo"
+                        value={formData.model}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="isDefault"
+                        name="isDefault"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        checked={formData.isDefault}
+                        onChange={handleInputChange}
+                      />
+                      <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-700">
+                        设为默认模型
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      type="button"
+                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? '保存中...' : '保存'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-} 
+}
