@@ -266,48 +266,47 @@ export default function AIChat() {
   
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* 历史聊天记录侧边栏 */}
-      <div className={`bg-white shadow-lg ${showSessionList ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200`}>
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-800">聊天历史</h1>
-        </div>
-        <div className="mt-4 px-4">
-          <button 
-            onClick={createNewSession}
-            className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            新建对话
-          </button>
-        </div>
-        <div className="mt-6 overflow-y-auto max-h-[calc(100vh-150px)]">
-          {chatSessions.map((session) => (
-            <div 
-              key={session.id} 
-              className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-100 ${currentSessionId === session.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
-              onClick={() => switchSession(session.id)}
+      <div className="flex w-full h-full">
+        {/* 历史聊天记录侧边栏 */}
+        <div className={`bg-white shadow-lg ${showSessionList ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200`}>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-800">聊天历史</h1>
+          </div>
+          <div className="mt-4 px-4">
+            <button 
+              onClick={createNewSession}
+              className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 truncate">{session.title}</p>
-                <p className="text-sm text-gray-500 truncate">{session.lastMessage}</p>
-                <p className="text-xs text-gray-400">
-                  {new Date(session.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-              <button 
-                onClick={(e) => deleteSession(session.id, e)}
-                className="ml-2 text-gray-400 hover:text-red-500"
+              新建对话
+            </button>
+          </div>
+          <div className="mt-6 overflow-y-auto max-h-[calc(100vh-150px)]">
+            {chatSessions.map((session) => (
+              <div 
+                key={session.id} 
+                className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-100 ${currentSessionId === session.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                onClick={() => switchSession(session.id)}
               >
-                🗑️
-              </button>
-            </div>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 truncate">{session.title}</p>
+                  <p className="text-sm text-gray-500 truncate">{session.lastMessage}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(session.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <button 
+                  onClick={(e) => deleteSession(session.id, e)}
+                  className="ml-2 text-gray-400 hover:text-red-500"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-      
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* 移除外层容器的内边距，使内容区域更靠近侧边栏 */}
-        <div className="flex flex-col flex-1 bg-gray-50 overflow-hidden">
-          <div className="mx-auto w-full max-w-4xl px-4 py-4">
+        
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="mx-auto w-full max-w-4xl py-4 px-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <button 
@@ -342,7 +341,7 @@ export default function AIChat() {
             </div>
             
             {/* 聊天消息区域 */}
-            <div className="flex-1 overflow-y-auto mb-4 bg-white rounded-lg shadow p-4 h-[calc(100vh-220px)]">
+            <div className="flex-1 overflow-y-auto mb-4 bg-white rounded-lg shadow-sm p-4 h-[calc(100vh-220px)]">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
                   <p>没有消息历史</p>
