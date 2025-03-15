@@ -14,7 +14,9 @@ export default function Sidebar() {
   return (
     <div className="w-64 bg-white shadow-lg">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-800">推文助手</h1>
+        <h1 className="text-2xl font-bold text-gray-800">
+          {pathname.includes('/ai-chat') ? '聊天历史' : '推文助手'}
+        </h1>
       </div>
       <nav className="mt-6">
         {menuItems.map((item) => (
@@ -32,4 +34,4 @@ export default function Sidebar() {
       </nav>
     </div>
   );
-} 
+}
