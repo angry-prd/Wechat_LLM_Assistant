@@ -70,6 +70,7 @@ export default function Editor() {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
                     <SyntaxHighlighter
+                      // @ts-ignore - 忽略类型错误，vscDarkPlus的类型与期望的类型不匹配
                       style={vscDarkPlus}
                       language={match[1]}
                       PreTag="div"

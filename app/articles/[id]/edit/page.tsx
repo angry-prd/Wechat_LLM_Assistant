@@ -107,7 +107,7 @@ const styles = {
     maxWidth: '1400px',
     margin: '0 auto',
     padding: '24px 16px',
-    height: 'calc(100vh - 100px)',
+    height: 'calc(100vh - 80px)',
     display: 'flex',
     flexDirection: 'column' as const,
   },
@@ -115,7 +115,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '24px',
+    marginBottom: '20px',
   },
   title: {
     fontSize: '1.875rem',
@@ -135,7 +135,7 @@ const styles = {
     display: 'flex',
     flex: 1,
     gap: '24px',
-    height: 'calc(100% - 80px)',
+    height: 'calc(100% - 60px)',
   },
   editorColumn: {
     flex: '3',
@@ -148,13 +148,14 @@ const styles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const,
+    overflow: 'hidden',
   },
   formGroup: {
-    marginBottom: '16px',
+    marginBottom: '12px',
   },
   label: {
     display: 'block',
-    marginBottom: '8px',
+    marginBottom: '6px',
     fontWeight: 'medium',
     color: '#374151',
   },
@@ -177,7 +178,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '12px',
-    marginTop: '16px',
+    marginTop: '12px',
   },
   button: {
     display: 'flex',
@@ -204,12 +205,20 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    marginBottom: '16px',
+    marginBottom: '12px',
     color: '#4b5563',
     fontSize: '0.875rem',
   },
   previewIcon: {
     color: '#2563eb',
+  },
+  previewContainer: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 'calc(100% - 30px)',
+    overflow: 'hidden',
   },
 };
 
@@ -280,9 +289,9 @@ export default function EditArticlePage() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>编辑文章</h1>
-        <Link href={`/articles/${params.id}`} style={styles.backLink}>
+        <Link href="/articles" style={styles.backLink}>
           <FaArrowLeft size={14} />
-          <span>返回文章详情</span>
+          <span>返回文章列表</span>
         </Link>
       </div>
 
@@ -324,7 +333,7 @@ export default function EditArticlePage() {
             </div>
 
             <div style={styles.buttonContainer}>
-              <Link href={`/articles/${params.id}`} style={{...styles.button, ...styles.cancelButton}}>
+              <Link href="/articles" style={{...styles.button, ...styles.cancelButton}}>
                 取消
               </Link>
               <button 
@@ -332,7 +341,7 @@ export default function EditArticlePage() {
                 style={{...styles.button, ...styles.saveButton}}
               >
                 <FaSave size={16} />
-                <span>保存更改</span>
+                <span>保存修改</span>
               </button>
             </div>
           </div>
@@ -343,7 +352,7 @@ export default function EditArticlePage() {
               <FaMobileAlt size={16} style={styles.previewIcon} />
               <span>微信公众号预览</span>
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={styles.previewContainer}>
               {isMounted && (
                 <PhonePreview 
                   title={title} 

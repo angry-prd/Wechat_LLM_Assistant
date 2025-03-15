@@ -13,7 +13,7 @@ const styles = {
     maxWidth: '1400px',
     margin: '0 auto',
     padding: '24px 16px',
-    height: 'calc(100vh - 100px)',
+    height: 'calc(100vh - 80px)', // 稍微增加可用高度
     display: 'flex',
     flexDirection: 'column' as const,
   },
@@ -21,7 +21,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '24px',
+    marginBottom: '20px', // 减少顶部边距，给预览区域留更多空间
   },
   title: {
     fontSize: '1.875rem',
@@ -41,7 +41,7 @@ const styles = {
     display: 'flex',
     flex: 1,
     gap: '24px',
-    height: 'calc(100% - 80px)',
+    height: 'calc(100% - 60px)', // 调整内容区域高度
   },
   editorColumn: {
     flex: '3',
@@ -54,13 +54,14 @@ const styles = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const,
+    overflow: 'hidden', // 防止溢出
   },
   formGroup: {
-    marginBottom: '16px',
+    marginBottom: '12px', // 减少表单组间距
   },
   label: {
     display: 'block',
-    marginBottom: '8px',
+    marginBottom: '6px', // 减少标签下方间距
     fontWeight: 'medium',
     color: '#374151',
   },
@@ -75,7 +76,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '12px',
-    marginTop: '16px',
+    marginTop: '12px', // 减少按钮上方间距
   },
   button: {
     display: 'flex',
@@ -107,12 +108,45 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    marginBottom: '16px',
+    marginBottom: '12px', // 减少预览标题下方间距
     color: '#4b5563',
     fontSize: '0.875rem',
   },
   previewIcon: {
     color: '#2563eb',
+  },
+  previewContainer: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 'calc(100% - 30px)', // 调整预览容器高度
+    overflow: 'hidden', // 防止溢出
+  },
+  notification: {
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #86efac',
+    color: '#166534',
+    padding: '12px 16px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  notificationText: {
+    fontSize: '0.875rem',
+  },
+  notificationClose: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#166534',
+    cursor: 'pointer',
+    fontSize: '1.25rem',
+    padding: '0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 };
 
@@ -121,12 +155,32 @@ export default function CreateArticlePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
 
   // 确保组件挂载后才渲染预览，避免服务器端渲染问题
   const [isMounted, setIsMounted] = useState(false);
   
   useEffect(() => {
     setIsMounted(true);
+    
+    // 从localStorage读取AI生成的内容
+    if (typeof window !== 'undefined') {
+      const savedContent = localStorage.getItem('newArticleContent');
+      const savedTitle = localStorage.getItem('newArticleTitle');
+      
+      if (savedContent) {
+        setContent(savedContent);
+        setShowNotification(true);
+        
+        // 清除localStorage中的内容，避免重复加载
+        localStorage.removeItem('newArticleContent');
+      }
+      
+      if (savedTitle) {
+        setTitle(savedTitle);
+        localStorage.removeItem('newArticleTitle');
+      }
+    }
   }, []);
 
   const handleSubmit = (e: React.FormEvent, status: string) => {
@@ -150,7 +204,19 @@ export default function CreateArticlePage() {
         </Link>
       </div>
 
-      <form style={{ height: '100%' }} onSubmit={(e) => handleSubmit(e, '草稿')}>
+      {showNotification && (
+        <div style={styles.notification}>
+          <span style={styles.notificationText}>已从AI助手导入文章内容</span>
+          <button 
+            style={styles.notificationClose}
+            onClick={() => setShowNotification(false)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <form style={{ height: showNotification ? 'calc(100% - 50px)' : '100%' }} onSubmit={(e) => handleSubmit(e, '草稿')}>
         <div style={styles.contentContainer}>
           {/* 左侧编辑区域 */}
           <div style={styles.editorColumn}>
@@ -202,7 +268,7 @@ export default function CreateArticlePage() {
               <FaMobileAlt size={16} style={styles.previewIcon} />
               <span>微信公众号预览</span>
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={styles.previewContainer}>
               {isMounted && (
                 <PhonePreview 
                   title={title} 

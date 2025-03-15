@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { FaHome, FaNewspaper, FaCog, FaWeixin } from 'react-icons/fa';
+import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot } from 'react-icons/fa';
 
 // 内联样式定义
 const styles = {
@@ -145,6 +145,7 @@ export default function Navbar() {
 
   const navItems = [
     { name: '首页', href: '/', icon: <FaHome size={16} style={{ marginRight: '8px' }} /> },
+    { name: 'AI助手', href: '/ai-chat', icon: <FaRobot size={16} style={{ marginRight: '8px' }} /> },
     { name: '文章管理', href: '/articles', icon: <FaNewspaper size={16} style={{ marginRight: '8px' }} /> },
     { name: '系统配置', href: '/settings', icon: <FaCog size={16} style={{ marginRight: '8px' }} /> },
   ];

@@ -25,9 +25,10 @@ const PhonePreview: React.FC<PhonePreviewProps> = ({
       justifyContent: 'center',
     },
     phoneFrame: {
-      width: '375px', // 标准iPhone宽度
-      height: '80%',
-      maxHeight: '700px',
+      width: '320px', // 稍微调整宽度
+      height: '90%', // 增加高度占比
+      minHeight: '600px', // 设置最小高度
+      maxHeight: '800px', // 增加最大高度
       borderRadius: '36px',
       border: '10px solid #333',
       overflow: 'hidden',

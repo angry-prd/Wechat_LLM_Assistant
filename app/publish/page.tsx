@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from 'react';
 
+// 定义文章类型接口
+interface Article {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export default function Publish() {
-  const [articles, setArticles] = useState([]);
-  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
