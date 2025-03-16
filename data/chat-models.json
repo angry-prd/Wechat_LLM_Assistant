@@ -1,9 +1,9 @@
 [
   {
     "id": "9adbc2e9-e70f-481c-8d16-a291364ac29c",
-    "name": "测试模型",
+    "name": "Claude模型",
     "apiKey": "sk-R5cgq1DasV2dmUz7tdabL4uPmXrLPunbc07P06zyw8nbFSfB",
-    "endpoint": "https://chat.cloudapi.vip/v1",
+    "endpoint": "https://chat.cloudapi.vip/v1/chat/completions",
     "model": "claude-3-7-sonnet-20250219",
     "isDefault": false,
     "createdAt": "2025-03-15T13:40:16.617Z",
@@ -13,10 +13,10 @@
     "id": "4534a861-70d5-4fdb-b690-57b8bcd25fe2",
     "name": "DeepSeek",
     "apiKey": "sk-f4e1be057440413fa4a444e535542c0a",
-    "endpoint": "https://api.deepseek.com",
+    "endpoint": "https://api.deepseek.com/v1/chat/completions",
     "model": "deepseek-chat",
     "isDefault": true,
     "createdAt": "2025-03-15T13:42:30.939Z",
-    "updatedAt": "2025-03-15T13:42:30.939Z"
+    "updatedAt": "2025-03-16T02:41:36.367Z"
   }
 ]

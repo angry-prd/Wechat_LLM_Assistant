@@ -164,29 +164,13 @@ export default function AIChat() {
       timestamp: new Date().toISOString()
     };
     
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     
-    // 保存消息到本地存储
-    localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(updatedMessages));
-    
-    // 更新会话信息
-    const updatedSession = chatSessions.find(session => session.id === currentSessionId);
-    if (updatedSession) {
-      updatedSession.lastMessage = userMessage.content;
-      updatedSession.timestamp = userMessage.timestamp;
-      const updatedSessions = chatSessions.map(session => 
-        session.id === currentSessionId ? updatedSession : session
-      );
-      setChatSessions(updatedSessions);
-      localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
-    }
-    
     try {
       // 准备发送到API的消息格式
-      const apiMessages = updatedMessages.map(({ role, content }) => ({
+      const apiMessages = messages.concat(userMessage).map(({ role, content }) => ({
         role,
         content
       }));
@@ -205,7 +189,7 @@ export default function AIChat() {
       const result = await response.json();
       
       if (result.success && result.data) {
-        // 假设API返回的格式与OpenAI兼容
+        // 处理成功响应
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -213,34 +197,24 @@ export default function AIChat() {
           timestamp: new Date().toISOString()
         };
         
-        const finalMessages = [...updatedMessages, assistantMessage];
-        setMessages(finalMessages);
-        
-        // 保存消息到本地存储
-        localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(finalMessages));
-        
-        // 更新会话信息
-        if (updatedSession) {
-          updatedSession.lastMessage = assistantMessage.content;
-          updatedSession.timestamp = assistantMessage.timestamp;
-          const updatedSessions = chatSessions.map(session => 
-            session.id === currentSessionId ? updatedSession : session
-          );
-          setChatSessions(updatedSessions);
-          localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
-        }
+        setMessages(prev => [...prev, assistantMessage]);
       } else {
-        // 错误处理
-        const errorMessage: Message = {
+        // 错误处理 - 显示更详细的错误信息
+        let errorMessage = '发生错误';
+        if (result.error && result.error.message) {
+          errorMessage = `错误: ${result.error.message}`;
+        } else if (result.message) {
+          errorMessage = `错误: ${result.message}`;
+        }
+        
+        const errorResponse: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `错误: ${result.message || '发生未知错误'}`,
+          content: errorMessage,
           timestamp: new Date().toISOString()
         };
         
-        const finalMessages = [...updatedMessages, errorMessage];
-        setMessages(finalMessages);
-        localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(finalMessages));
+        setMessages(prev => [...prev, errorResponse]);
       }
     } catch (error) {
       console.error('发送消息失败:', error);
@@ -251,9 +225,7 @@ export default function AIChat() {
         timestamp: new Date().toISOString()
       };
       
-      const finalMessages = [...updatedMessages, errorMessage];
-      setMessages(finalMessages);
-      localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(finalMessages));
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }

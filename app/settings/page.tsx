@@ -41,9 +41,11 @@ export default function Settings() {
         setModels(result.data);
       } else {
         console.error('获取模型失败:', result.message);
+        alert(`获取模型失败: ${result.message}`);
       }
     } catch (error) {
       console.error('获取模型错误:', error);
+      alert('获取模型配置失败，请检查网络连接');
     } finally {
       setIsLoading(false);
     }

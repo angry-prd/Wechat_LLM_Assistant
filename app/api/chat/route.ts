@@ -69,7 +69,13 @@ export async function POST(request: NextRequest) {
     }
     
     // 根据不同的模型配置构建请求
-    const apiUrl = modelConfig.endpoint;
+    // 确保API端点URL是完整的
+    let apiUrl = modelConfig.endpoint;
+    // 如果endpoint不包含'/v1/chat/completions'，则添加
+    if (!apiUrl.includes('/chat/completions')) {
+      apiUrl = apiUrl.endsWith('/') ? `${apiUrl}v1/chat/completions` : `${apiUrl}/v1/chat/completions`;
+    }
+    
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${modelConfig.apiKey}`
