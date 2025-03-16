@@ -159,7 +159,7 @@ export default function Home() {
           一个集成了AI大模型和Markdown编辑器的微信公众号推文助手
         </p>
         <div style={styles.buttonContainer}>
-          <Link href="/ai-generator" style={styles.primaryButton}>
+          <Link href="/ai-chat" style={styles.primaryButton}>
             开始使用
           </Link>
         </div>
@@ -196,9 +196,9 @@ export default function Home() {
       <div style={styles.banner}>
         <h2 style={styles.bannerTitle}>提升您的公众号内容质量</h2>
         <p style={styles.bannerText}>
-          使用我们的AI助手，轻松创建高质量的微信公众号文章
+          使用我们的AI助手，轻松创建高质量的微信公众号推文
         </p>
       </div>
     </div>
   );
-} 
+}

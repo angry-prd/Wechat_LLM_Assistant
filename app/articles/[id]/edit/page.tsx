@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaSave, FaMobileAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaSave, FaMobileAlt, FaWeixin } from 'react-icons/fa';
+import Toast from '../../../../components/Toast';
 import MarkdownEditor from '../../../../components/MarkdownEditor';
 import PhonePreview from '../../../../components/PhonePreview';
 
@@ -103,6 +105,58 @@ const mockArticles = [
 
 // 内联样式
 const styles = {
+  modal: {
+    position: 'fixed' as const,
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+    zIndex: 50,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    maxWidth: '600px',
+    width: '100%',
+    padding: '24px',
+    maxHeight: '90vh',
+    overflow: 'auto',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+  },
+  modalTitle: {
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalCloseButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#6b7280',
+    cursor: 'pointer',
+    fontSize: '1.5rem',
+    padding: '0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '12px',
+  },
+  checkbox: {
+    width: '16px',
+    height: '16px',
+  },
   container: {
     maxWidth: '1400px',
     margin: '0 auto',
@@ -195,6 +249,11 @@ const styles = {
     color: 'white',
     border: 'none',
   },
+  saveAsDraftButton: {
+    backgroundColor: 'white',
+    color: '#4b5563',
+    border: '1px solid #d1d5db',
+  },
   cancelButton: {
     backgroundColor: 'white',
     color: '#4b5563',
@@ -220,6 +279,31 @@ const styles = {
     height: 'calc(100% - 30px)',
     overflow: 'hidden',
   },
+  notification: {
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #86efac',
+    color: '#166534',
+    padding: '12px 16px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  notificationText: {
+    fontSize: '0.875rem',
+  },
+  notificationClose: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#166534',
+    cursor: 'pointer',
+    fontSize: '1.25rem',
+    padding: '0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 };
 
 export default function EditArticlePage() {
@@ -231,6 +315,19 @@ export default function EditArticlePage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as const });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 推文发布相关状态
+  const [publishData, setPublishData] = useState({
+    title: '',
+    author: '',
+    isOriginal: true,
+    allowReward: true,
+    allowComment: true,
+    isPaid: false,
+    collection: '',
+  });
   
   // 确保组件挂载后才渲染预览，避免服务器端渲染问题
   const [isMounted, setIsMounted] = useState(false);
@@ -239,14 +336,29 @@ export default function EditArticlePage() {
     setIsMounted(true);
     
     // 在实际应用中，这里会从API获取文章详情
-    // 这里使用模拟数据
+    // 这里使用模拟数据和localStorage中保存的文章
     const fetchArticle = () => {
-      const foundArticle = mockArticles.find(a => a.id === params.id);
+      // 先查找模拟数据
+      let foundArticle = mockArticles.find(a => a.id === params.id);
+      
+      // 如果模拟数据中没有找到，则从localStorage中查找
+      if (!foundArticle && typeof window !== 'undefined') {
+        const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+        foundArticle = savedArticles.find((a: any) => a.id === params.id);
+      }
+      
       if (foundArticle) {
         setArticle(foundArticle);
         setTitle(foundArticle.title);
-        setContent(foundArticle.content);
+        setContent(foundArticle.content || '');
         setStatus(foundArticle.status);
+        
+        // 初始化发布数据
+        setPublishData(prev => ({
+          ...prev,
+          title: foundArticle.title,
+          author: foundArticle.author || ''
+        }));
       }
       setLoading(false);
     };
@@ -254,15 +366,65 @@ export default function EditArticlePage() {
     fetchArticle();
   }, [params.id]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent, newStatus?: string) => {
     e.preventDefault();
     
-    // 在实际应用中，这里会调用API更新文章
-    console.log('更新文章:', { id: params.id, title, content, status });
+    // 构建更新后的文章数据
+    const updatedArticle = {
+      id: params.id as string,
+      title,
+      content,
+      status: newStatus || status,
+      summary: content.substring(0, 100) + '...',
+      createdAt: article.createdAt || new Date().toISOString().split('T')[0],
+      author: publishData.author,
+      isOriginal: publishData.isOriginal,
+      allowReward: publishData.allowReward,
+      allowComment: publishData.allowComment,
+      isPaid: publishData.isPaid,
+      collection: publishData.collection
+    };
     
-    // 模拟保存成功后跳转到文章详情页
-    alert('文章更新成功！');
-    router.push(`/articles/${params.id}`);
+    // 在实际应用中，这里会调用API更新文章
+    console.log('更新文章:', updatedArticle);
+    
+    // 更新localStorage中的文章数据
+    if (typeof window !== 'undefined') {
+      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+      const updatedArticles = savedArticles.map((a: any) => 
+        a.id === params.id ? { ...a, ...updatedArticle } : a
+      );
+      localStorage.setItem('articles', JSON.stringify(updatedArticles));
+    }
+    
+    // 显示保存成功的Toast提示
+    setToast({
+      visible: true,
+      message: newStatus === '已发布' ? '推文已成功发布！' : '推文更新成功！',
+      type: 'success'
+    });
+    
+    // 延迟跳转到文章列表页
+    setTimeout(() => {
+      router.push('/articles');
+    }, 1500);
+  };
+  
+  // 处理模态窗口中的输入变化
+  const handlePublishDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type, checked } = e.target as HTMLInputElement;
+    
+    setPublishData({
+      ...publishData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+  
+  // 处理发布推文
+  const handlePublish = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmit(e, '已发布');
+    setIsModalOpen(false);
   };
 
   if (loading) {
@@ -287,8 +449,15 @@ export default function EditArticlePage() {
 
   return (
     <div style={styles.container}>
+      {/* Toast提示组件 */}
+      <Toast 
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, visible: false })}
+      />
       <div style={styles.header}>
-        <h1 style={styles.title}>编辑文章</h1>
+        <h1 style={styles.title}>编辑推文</h1>
         <Link href="/articles" style={styles.backLink}>
           <FaArrowLeft size={14} />
           <span>返回文章列表</span>
@@ -299,32 +468,6 @@ export default function EditArticlePage() {
         <div style={styles.contentContainer}>
           {/* 左侧编辑区域 */}
           <div style={styles.editorColumn}>
-            <div style={styles.formGroup}>
-              <label htmlFor="title" style={styles.label}>文章标题</label>
-              <input
-                type="text"
-                id="title"
-                style={styles.input}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="请输入文章标题"
-                required
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label htmlFor="status" style={styles.label}>文章状态</label>
-              <select
-                id="status"
-                style={styles.statusSelect}
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="草稿">草稿</option>
-                <option value="已发布">已发布</option>
-              </select>
-            </div>
-            
             <div style={{ flex: 1 }}>
               <MarkdownEditor 
                 value={content} 
@@ -337,11 +480,19 @@ export default function EditArticlePage() {
                 取消
               </Link>
               <button 
-                type="submit" 
+                type="button" 
+                style={{...styles.button, ...styles.saveAsDraftButton}}
+                onClick={(e) => handleSubmit(e, '草稿')}
+              >
+                保存为草稿
+              </button>
+              <button 
+                type="button" 
                 style={{...styles.button, ...styles.saveButton}}
+                onClick={() => setIsModalOpen(true)}
               >
                 <FaSave size={16} />
-                <span>保存修改</span>
+                <span>发布推文</span>
               </button>
             </div>
           </div>
@@ -365,6 +516,130 @@ export default function EditArticlePage() {
           </div>
         </div>
       </form>
+      
+      {/* 发布推文模态窗口 */}
+      {isModalOpen && (
+        <div style={styles.modal}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>发布推文</h2>
+              <button 
+                style={styles.modalCloseButton}
+                onClick={() => setIsModalOpen(false)}
+              >
+                ×
+              </button>
+          </div>
+          
+          <form onSubmit={handlePublish}>
+            <div style={styles.formGroup}>
+              <label htmlFor="title" style={styles.label}>推文标题</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                style={styles.input}
+                value={publishData.title}
+                onChange={handlePublishDataChange}
+                placeholder="请输入推文标题"
+                required
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label htmlFor="author" style={styles.label}>作者</label>
+              <input
+                type="text"
+                id="author"
+                name="author"
+                style={styles.input}
+                value={publishData.author}
+                onChange={handlePublishDataChange}
+                placeholder="请输入作者名称"
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label htmlFor="collection" style={styles.label}>所属合集</label>
+              <input
+                type="text"
+                id="collection"
+                name="collection"
+                style={styles.input}
+                value={publishData.collection}
+                onChange={handlePublishDataChange}
+                placeholder="请输入合集名称（可选）"
+              />
+            </div>
+            
+            <div style={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="isOriginal"
+                name="isOriginal"
+                style={styles.checkbox}
+                checked={publishData.isOriginal}
+                onChange={handlePublishDataChange}
+              />
+              <label htmlFor="isOriginal">原创声明</label>
+            </div>
+            
+            <div style={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="allowReward"
+                name="allowReward"
+                style={styles.checkbox}
+                checked={publishData.allowReward}
+                onChange={handlePublishDataChange}
+              />
+              <label htmlFor="allowReward">允许赞赏</label>
+            </div>
+            
+            <div style={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="allowComment"
+                name="allowComment"
+                style={styles.checkbox}
+                checked={publishData.allowComment}
+                onChange={handlePublishDataChange}
+              />
+              <label htmlFor="allowComment">允许留言</label>
+            </div>
+            
+            <div style={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="isPaid"
+                name="isPaid"
+                style={styles.checkbox}
+                checked={publishData.isPaid}
+                onChange={handlePublishDataChange}
+              />
+              <label htmlFor="isPaid">付费阅读</label>
+            </div>
+            
+            <div style={styles.buttonContainer}>
+              <button 
+                type="button" 
+                style={{...styles.button, ...styles.cancelButton}}
+                onClick={() => setIsModalOpen(false)}
+              >
+                取消
+              </button>
+              <button 
+                type="submit" 
+                style={{...styles.button, ...styles.saveButton}}
+              >
+                <FaSave size={16} />
+                <span>确认发布</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      )}
     </div>
   );
-} 
+}

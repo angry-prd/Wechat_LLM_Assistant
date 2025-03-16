@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { FaSync, FaCopy, FaFileAlt } from 'react-icons/fa';
 // 移除Sidebar导入
 
 interface ModelConfig {
@@ -317,15 +318,15 @@ export default function AIChat() {
                 onClick={() => switchSession(session.id)}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 truncate">{session.title}</p>
-                  <p className="text-sm text-gray-500 truncate">{session.lastMessage}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-base font-medium text-gray-800 truncate">{session.title}</p>
+                  <p className="text-sm text-gray-600 truncate">{session.lastMessage}</p>
+                  <p className="text-xs text-gray-500">
                     {new Date(session.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
                 <button 
                   onClick={(e) => deleteSession(session.id, e)}
-                  className="ml-2 text-gray-400 hover:text-red-500"
+                  className="ml-2 text-gray-400 hover:text-red-500 text-lg"
                 >
                   🗑️
                 </button>
@@ -396,9 +397,9 @@ export default function AIChat() {
                         
                         {/* AI回复的操作按钮 */}
                         {message.role === 'assistant' && (
-                          <div className="flex justify-end space-x-1 px-2 pb-1.5">
+                          <div className="flex justify-end space-x-2 px-2 pb-2">
                             <button 
-                              className="text-xs text-gray-500 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-1.5 py-0.5"
+                              className="flex items-center text-sm text-gray-600 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-2 py-1"
                               onClick={() => {
                                 // 重新生成逻辑
                                 // 找到最后一条用户消息之前的所有消息
@@ -497,27 +498,33 @@ export default function AIChat() {
                               title="重新生成"
                               disabled={isLoading}
                             >
-                              🔄
+                              <FaSync className="mr-1" /> 重新生成
                             </button>
                             <button 
-                              className="text-xs text-gray-500 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-1.5 py-0.5"
+                              className="flex items-center text-sm text-gray-600 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-2 py-1"
                               onClick={() => {
                                 navigator.clipboard.writeText(message.content);
                                 // 可以添加复制成功的提示
                               }}
                               title="复制内容"
                             >
-                              📋
+                              <FaCopy className="mr-1" /> 复制
                             </button>
                             <button 
-                              className="text-xs text-gray-500 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-1.5 py-0.5"
+                              className="flex items-center text-sm text-gray-600 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-2 py-1"
                               onClick={() => {
-                                // 创建新文章逻辑
-                                router.push(`/articles/create?content=${encodeURIComponent(message.content)}`);
+                                // 创建新文章逻辑 - 保存到localStorage并跳转
+                                localStorage.setItem('newArticleContent', message.content);
+                                // 可以从AI回复中提取标题（如果有）
+                                const titleMatch = message.content.match(/^#\s+(.+)$/m);
+                                if (titleMatch && titleMatch[1]) {
+                                  localStorage.setItem('newArticleTitle', titleMatch[1]);
+                                }
+                                router.push('/articles/create');
                               }}
-                              title="创建新文章"
+                              title="创建推文"
                             >
-                              📝
+                              <FaFileAlt className="mr-1" /> 直接创建新推文
                             </button>
                           </div>
                         )}

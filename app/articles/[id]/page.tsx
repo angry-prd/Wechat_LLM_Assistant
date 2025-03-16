@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { FaArrowLeft, FaEdit, FaWeixin } from 'react-icons/fa';
 
 // 模拟文章数据
@@ -217,14 +217,23 @@ const styles = {
 
 export default function ArticleDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // 在实际应用中，这里会从API获取文章详情
-    // 这里使用模拟数据
+    // 这里使用模拟数据和localStorage中保存的文章
     const fetchArticle = () => {
-      const foundArticle = mockArticles.find(a => a.id === params.id);
+      // 先查找模拟数据
+      let foundArticle = mockArticles.find(a => a.id === params.id);
+      
+      // 如果模拟数据中没有找到，则从localStorage中查找
+      if (!foundArticle && typeof window !== 'undefined') {
+        const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+        foundArticle = savedArticles.find((a: any) => a.id === params.id);
+      }
+      
       setArticle(foundArticle || null);
       setLoading(false);
     };
@@ -309,23 +318,30 @@ export default function ArticleDetailPage() {
         </div>
 
         <div style={styles.actionContainer}>
-          <Link 
-            href={`/articles/${article.id}/edit`} 
-            style={{...styles.actionButton, ...styles.editButton}}
-          >
-            <FaEdit size={16} />
-            <span>编辑文章</span>
-          </Link>
-          {article.status === '草稿' && (
-            <button 
-              style={{...styles.actionButton, ...styles.publishButton}}
-            >
-              <FaWeixin size={16} />
-              <span>发布到公众号</span>
-            </button>
+          {article.status === '草稿' ? (
+            <>
+              <Link 
+                href={`/articles/${article.id}/edit`} 
+                style={{...styles.actionButton, ...styles.editButton}}
+              >
+                <FaEdit size={16} />
+                <span>编辑文章</span>
+              </Link>
+              <button 
+                style={{...styles.actionButton, ...styles.publishButton}}
+                onClick={() => router.push(`/articles/${article.id}/edit`)}
+              >
+                <FaWeixin size={16} />
+                <span>发布到公众号</span>
+              </button>
+            </>
+          ) : (
+            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+              已发布的推文不可编辑
+            </div>
           )}
         </div>
       </div>
     </div>
   );
-} 
+}

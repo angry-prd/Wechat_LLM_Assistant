@@ -188,8 +188,13 @@ export default function ArticlesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    // 在实际应用中，这里会从API获取文章列表
-    // fetchArticles();
+    // 从localStorage获取保存的文章
+    if (typeof window !== 'undefined') {
+      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+      if (savedArticles.length > 0) {
+        setArticles([...mockArticles, ...savedArticles]);
+      }
+    }
   }, []);
 
   // 过滤和搜索文章
@@ -216,10 +221,10 @@ export default function ArticlesPage() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>文章管理</h1>
+        <h1 style={styles.title}>推文管理</h1>
         <Link href="/articles/create" style={styles.createButton}>
           <FaPlus size={16} />
-          <span>新建文章</span>
+          <span>新建推文</span>
         </Link>
       </div>
 
@@ -290,18 +295,33 @@ export default function ArticlesPage() {
                     </span>
                   </td>
                   <td style={styles.td}>
-                    <Link href={`/articles/${article.id}`} style={{...styles.actionButton, ...styles.viewButton}}>
-                      <FaEye size={16} />
-                    </Link>
-                    <Link href={`/articles/${article.id}/edit`} style={{...styles.actionButton, ...styles.editButton}}>
-                      <FaEdit size={16} />
-                    </Link>
-                    <button 
-                      style={{...styles.actionButton, ...styles.deleteButton}}
-                      onClick={() => handleDeleteArticle(article.id)}
-                    >
-                      <FaTrash size={16} />
-                    </button>
+                    {article.status === '已发布' && (
+                      <Link 
+                        href={`/articles/${article.id}`} 
+                        style={{...styles.actionButton, ...styles.viewButton}}
+                        title="查看详情"
+                      >
+                        <FaEye size={16} />
+                      </Link>
+                    )}
+                    {article.status === '草稿' && (
+                      <>
+                        <Link 
+                          href={`/articles/${article.id}/edit`} 
+                          style={{...styles.actionButton, ...styles.editButton}}
+                          title="编辑推文"
+                        >
+                          <FaEdit size={16} />
+                        </Link>
+                        <button 
+                          style={{...styles.actionButton, ...styles.deleteButton}}
+                          onClick={() => handleDeleteArticle(article.id)}
+                          title="删除推文"
+                        >
+                          <FaTrash size={16} />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -332,4 +352,4 @@ export default function ArticlesPage() {
       )}
     </div>
   );
-} 
+}
