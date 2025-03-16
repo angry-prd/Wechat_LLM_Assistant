@@ -153,6 +153,30 @@ export default function AIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
+  // 更新会话标题
+  const updateSessionTitle = (messages: Message[]) => {
+    if (messages.length > 0 && currentSessionId) {
+      // 获取第一条用户消息作为标题基础
+      const firstUserMessage = messages.find(m => m.role === 'user');
+      if (firstUserMessage) {
+        // 截取前20个字符作为标题
+        const title = firstUserMessage.content.length > 20 
+          ? firstUserMessage.content.substring(0, 20) + '...' 
+          : firstUserMessage.content;
+        
+        // 更新当前会话标题
+        const updatedSessions = chatSessions.map(session => 
+          session.id === currentSessionId 
+            ? { ...session, title } 
+            : session
+        );
+        
+        setChatSessions(updatedSessions);
+        localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+      }
+    }
+  };
+  
   // 发送消息
   const sendMessage = async () => {
     if (!input.trim() || !selectedModelId) return;
@@ -164,9 +188,20 @@ export default function AIChat() {
       timestamp: new Date().toISOString()
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
+    
+    // 保存消息到本地存储
+    if (currentSessionId) {
+      localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(updatedMessages));
+      
+      // 如果是第一条消息，更新会话标题
+      if (messages.length === 0) {
+        updateSessionTitle(updatedMessages);
+      }
+    }
     
     try {
       // 准备发送到API的消息格式
@@ -197,7 +232,29 @@ export default function AIChat() {
           timestamp: new Date().toISOString()
         };
         
-        setMessages(prev => [...prev, assistantMessage]);
+        const newMessages = [...messages, assistantMessage];
+        setMessages(newMessages);
+        
+        // 保存消息到本地存储并更新会话信息
+        if (currentSessionId) {
+          localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(newMessages));
+          
+          // 更新会话的最后消息和时间戳
+          const updatedSessions = chatSessions.map(session => 
+            session.id === currentSessionId 
+              ? { 
+                  ...session, 
+                  lastMessage: assistantMessage.content.length > 30 
+                    ? assistantMessage.content.substring(0, 30) + '...' 
+                    : assistantMessage.content,
+                  timestamp: new Date().toISOString() 
+                } 
+              : session
+          );
+          
+          setChatSessions(updatedSessions);
+          localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+        }
       } else {
         // 错误处理 - 显示更详细的错误信息
         let errorMessage = '发生错误';
@@ -278,8 +335,9 @@ export default function AIChat() {
         </div>
         
         <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="mx-auto w-full max-w-4xl py-4 px-4">
-            <div className="flex items-center justify-between mb-4">
+          {/* 固定顶部操作区 */}
+          <div className="sticky top-0 z-10 bg-white shadow-sm py-3 px-4">
+            <div className="flex items-center justify-between max-w-4xl mx-auto">
               <div className="flex items-center">
                 <button 
                   className="mr-3 text-gray-600 hover:text-gray-900"
@@ -287,12 +345,12 @@ export default function AIChat() {
                 >
                   {showSessionList ? '◀' : '▶'}
                 </button>
-                <h1 className="text-2xl font-bold">AI 聊天</h1>
+                <h1 className="text-xl font-bold">AI 聊天</h1>
               </div>
               <div className="flex items-center space-x-4">
                 {models.length > 0 && (
                   <select
-                    className="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={selectedModelId}
                     onChange={(e) => setSelectedModelId(e.target.value)}
                   >
@@ -304,41 +362,165 @@ export default function AIChat() {
                   </select>
                 )}
                 <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={goToSettings}
                 >
                   模型配置
                 </button>
               </div>
             </div>
-            
-            {/* 聊天消息区域 */}
-            <div className="flex-1 overflow-y-auto mb-4 bg-white rounded-lg shadow-sm p-4 h-[calc(100vh-220px)]">
+          </div>
+          
+          {/* 聊天消息区域 - 可滚动 */}
+          <div className="flex-1 overflow-y-auto px-4 py-3">
+            <div className="max-w-4xl mx-auto">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-gray-500">
                   <p>没有消息历史</p>
                   <p className="text-sm">选择一个模型并开始聊天</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-3/4 p-3 rounded-lg ${
-                          message.role === 'user'
-                            ? 'bg-blue-100 text-blue-900'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
+                        className={`max-w-[85%] rounded-2xl shadow-sm ${message.role === 'user' ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-900'}`}
                       >
-                        <div className="whitespace-pre-wrap">{message.content}</div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="p-2.5 text-sm whitespace-pre-wrap">{message.content}</div>
+                        <div className="px-2.5 pb-1.5 text-xs text-gray-500">
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </div>
+                        
+                        {/* AI回复的操作按钮 */}
+                        {message.role === 'assistant' && (
+                          <div className="flex justify-end space-x-1 px-2 pb-1.5">
+                            <button 
+                              className="text-xs text-gray-500 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-1.5 py-0.5"
+                              onClick={() => {
+                                // 重新生成逻辑
+                                // 找到最后一条用户消息之前的所有消息
+                                const lastUserIndex = [...messages].reverse().findIndex(m => m.role === 'user');
+                                if (lastUserIndex !== -1) {
+                                  const userMessageIndex = messages.length - 1 - lastUserIndex;
+                                  // 保留到最后一条用户消息
+                                  const messagesToKeep = messages.slice(0, userMessageIndex + 1);
+                                  setMessages(messagesToKeep);
+                                  setIsLoading(true);
+                                  
+                                  // 重新发送请求
+                                  const apiMessages = messagesToKeep.map(({ role, content }) => ({
+                                    role,
+                                    content
+                                  }));
+                                  
+                                  fetch('/api/chat', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                      modelId: selectedModelId,
+                                      messages: apiMessages
+                                    })
+                                  })
+                                  .then(response => response.json())
+                                  .then(result => {
+                                    if (result.success && result.data) {
+                                      const assistantMessage: Message = {
+                                        id: Date.now().toString(),
+                                        role: 'assistant',
+                                        content: result.data.choices?.[0]?.message?.content || '抱歉，我无法生成回复。',
+                                        timestamp: new Date().toISOString()
+                                      };
+                                      
+                                      const newMessages = [...messagesToKeep, assistantMessage];
+                                      setMessages(newMessages);
+                                      
+                                      // 保存消息到本地存储并更新会话信息
+                                      if (currentSessionId) {
+                                        localStorage.setItem(`messages_${currentSessionId}`, JSON.stringify(newMessages));
+                                        
+                                        // 更新会话的最后消息和时间戳
+                                        const updatedSessions = chatSessions.map(session => 
+                                          session.id === currentSessionId 
+                                            ? { 
+                                                ...session, 
+                                                lastMessage: assistantMessage.content.length > 30 
+                                                  ? assistantMessage.content.substring(0, 30) + '...' 
+                                                  : assistantMessage.content,
+                                                timestamp: new Date().toISOString() 
+                                              } 
+                                            : session
+                                        );
+                                        
+                                        setChatSessions(updatedSessions);
+                                        localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+                                      }
+                                    } else {
+                                      // 错误处理
+                                      let errorMessage = '发生错误';
+                                      if (result.error && result.error.message) {
+                                        errorMessage = `错误: ${result.error.message}`;
+                                      } else if (result.message) {
+                                        errorMessage = `错误: ${result.message}`;
+                                      }
+                                      
+                                      const errorResponse: Message = {
+                                        id: Date.now().toString(),
+                                        role: 'assistant',
+                                        content: errorMessage,
+                                        timestamp: new Date().toISOString()
+                                      };
+                                      
+                                      setMessages([...messagesToKeep, errorResponse]);
+                                    }
+                                  })
+                                  .catch(error => {
+                                    console.error('重新生成失败:', error);
+                                    const errorMessage: Message = {
+                                      id: Date.now().toString(),
+                                      role: 'assistant',
+                                      content: '重新生成失败，请检查网络连接或稍后再试。',
+                                      timestamp: new Date().toISOString()
+                                    };
+                                    
+                                    setMessages([...messagesToKeep, errorMessage]);
+                                  })
+                                  .finally(() => {
+                                    setIsLoading(false);
+                                  });
+                                }
+                              }}
+                              title="重新生成"
+                              disabled={isLoading}
+                            >
+                              🔄
+                            </button>
+                            <button 
+                              className="text-xs text-gray-500 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-1.5 py-0.5"
+                              onClick={() => {
+                                navigator.clipboard.writeText(message.content);
+                                // 可以添加复制成功的提示
+                              }}
+                              title="复制内容"
+                            >
+                              📋
+                            </button>
+                            <button 
+                              className="text-xs text-gray-500 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-1.5 py-0.5"
+                              onClick={() => {
+                                // 创建新文章逻辑
+                                router.push(`/articles/create?content=${encodeURIComponent(message.content)}`);
+                              }}
+                              title="创建新文章"
+                            >
+                              📝
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -346,13 +528,15 @@ export default function AIChat() {
                 </div>
               )}
             </div>
-            
-            {/* 输入区域 */}
-            <div className="bg-white rounded-lg shadow p-4">
+          </div>
+          
+          {/* 固定底部输入区域 */}
+          <div className="sticky bottom-0 z-10 bg-white shadow-lg border-t border-gray-200 p-3">
+            <div className="max-w-4xl mx-auto">
               <div className="flex space-x-2">
                 <input
                   type="text"
-                  className="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="输入消息..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -365,11 +549,7 @@ export default function AIChat() {
                   disabled={isLoading || models.length === 0}
                 />
                 <button
-                  className={`px-4 py-2 ${
-                    isLoading || models.length === 0
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={`px-4 py-2 text-sm ${isLoading || models.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   onClick={sendMessage}
                   disabled={isLoading || models.length === 0}
                 >
