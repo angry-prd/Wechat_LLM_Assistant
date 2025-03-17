@@ -12,7 +12,6 @@ let userConfigs: Record<string, any> = {
     wechatEncodingAESKey: '',
     defaultArticleAuthor: '微信助手',
     defaultArticleCopyright: '© 2023 微信AI助手',
-    wechatConfigs: [] // 存储多个微信公众号配置
   }
 };
 
@@ -21,18 +20,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || 'default';
-    const configType = searchParams.get('type');
     
     // 如果用户配置不存在，返回默认配置
     if (!userConfigs[userId]) {
       userConfigs[userId] = { ...userConfigs['default'] };
-    }
-    
-    // 如果请求特定类型的配置
-    if (configType === 'wechat') {
-      return NextResponse.json({
-        wechatConfigs: userConfigs[userId].wechatConfigs || []
-      });
     }
     
     return NextResponse.json(userConfigs[userId]);

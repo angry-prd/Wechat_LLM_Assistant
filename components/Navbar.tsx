@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot } from 'react-icons/fa';
+import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot, FaUser } from 'react-icons/fa';
 
 // 内联样式定义
 const styles = {
@@ -219,6 +219,18 @@ export default function Navbar() {
           
           {/* Mobile menu button */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Link href="/login" style={{
+              display: !isMobile ? 'flex' : 'none',
+              alignItems: 'center',
+              color: '#6b7280',
+              textDecoration: 'none',
+              marginRight: '12px',
+              fontSize: '0.875rem',
+              fontWeight: 'medium',
+            }}>
+              <FaUser size={16} style={{ marginRight: '8px' }} />
+              <span>登录/注册</span>
+            </Link>
             {isMobile && (
               <button
                 type="button"
@@ -281,8 +293,19 @@ export default function Navbar() {
               {item.name}
             </Link>
           ))}
+          <Link
+            href="/login"
+            style={{
+              ...styles.mobileNavItem,
+              ...(pathname === '/login' ? styles.mobileNavItemActive : styles.mobileNavItemInactive),
+            }}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <FaUser size={16} style={{ marginRight: '8px' }} />
+            登录/注册
+          </Link>
         </div>
       )}
     </nav>
   );
-} 
+}

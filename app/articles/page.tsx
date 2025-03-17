@@ -4,30 +4,24 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 
-// 模拟文章数据
-const mockArticles = [
-  {
-    id: '1',
-    title: '如何提高公众号阅读量',
-    summary: '本文介绍了提高微信公众号阅读量的10个有效方法...',
-    createdAt: '2025-03-10',
-    status: '草稿'
-  },
-  {
-    id: '2',
-    title: '微信公众号运营技巧分享',
-    summary: '分享几个实用的微信公众号运营技巧，帮助你快速增粉...',
-    createdAt: '2025-03-12',
-    status: '已发布'
-  },
-  {
-    id: '3',
-    title: '内容创作的5个黄金法则',
-    summary: '优质内容是吸引读者的关键，本文分享内容创作的5个黄金法则...',
-    createdAt: '2025-03-14',
-    status: '草稿'
-  }
-];
+// 文章类型定义
+interface Article {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  userId?: string;
+}
+
+// 用于显示的文章数据
+interface DisplayArticle {
+  id: string;
+  title: string;
+  summary: string;
+  createdAt: string;
+  status: string;
+}
 
 // 内联样式
 const styles = {
@@ -178,7 +172,48 @@ const styles = {
 };
 
 export default function ArticlesPage() {
-  const [articles, setArticles] = useState(mockArticles);
+  const [articles, setArticles] = useState<DisplayArticle[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState('default'); // 默认用户ID
+  
+  // 获取文章列表
+  useEffect(() => {
+    const fetchArticles = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/articles?userId=${userId}`);
+        
+        if (!response.ok) {
+          throw new Error('获取文章列表失败');
+        }
+        
+        const data: Article[] = await response.json();
+        
+        // 转换为显示格式
+        const displayArticles: DisplayArticle[] = data.map(article => ({
+          id: article.id,
+          title: article.title,
+          summary: article.content.length > 100 
+            ? article.content.replace(/[#*`]/g, '').substring(0, 100) + '...' 
+            : article.content.replace(/[#*`]/g, ''),
+          createdAt: new Date(article.createdAt).toLocaleDateString('zh-CN'),
+          status: '草稿' // 默认状态，实际应用中应该从数据中获取
+        }));
+        
+        setArticles(displayArticles);
+      } catch (err) {
+        console.error('获取文章失败:', err);
+        setError(err instanceof Error ? err.message : '未知错误');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchArticles();
+  }, [userId]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
