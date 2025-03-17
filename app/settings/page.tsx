@@ -165,14 +165,8 @@ export default function Settings() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">聊天模型配置</h1>
+            <h1 className="text-2xl font-bold">系统设置</h1>
             <div className="flex space-x-4">
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={openNewModelForm}
-              >
-                添加模型
-              </button>
               <button
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 onClick={goToChat}
@@ -181,6 +175,38 @@ export default function Settings() {
               </button>
             </div>
           </div>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+            <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-semibold mb-4">聊天模型配置</h2>
+              <p className="text-gray-600 mb-4">配置AI聊天模型的API密钥和参数</p>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">{models.length}个模型已配置</span>
+                <button
+                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={openNewModelForm}
+                >
+                  添加模型
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-semibold mb-4">微信公众号配置</h2>
+              <p className="text-gray-600 mb-4">配置微信公众号的AppID和密钥</p>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">管理公众号配置</span>
+                <button
+                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={() => router.push('/settings/wechat')}
+                >
+                  管理配置
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <h2 className="text-xl font-semibold mb-4">聊天模型列表</h2>
           
           {isLoading && models.length === 0 ? (
             <div className="flex justify-center py-10">

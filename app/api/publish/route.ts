@@ -1,20 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // 从本地存储获取用户配置
-async function getUserConfig() {
-  // 在实际应用中，这里应该从数据库获取用户配置
-  // 这里简化为从环境变量获取
-  return {
-    wechatAppId: process.env.WECHAT_APP_ID || '',
-    wechatAppSecret: process.env.WECHAT_APP_SECRET || '',
-    wechatToken: process.env.WECHAT_TOKEN || '',
-    wechatEncodingAESKey: process.env.WECHAT_ENCODING_AES_KEY || '',
-  };
+async function getUserConfig(wechatConfigId?: string) {
+  try {
+    // 获取所有微信公众号配置
+    const response = await fetch('http://localhost:3001/api/user-config?type=wechat');
+    const data = await response.json();
+    
+    // 获取微信公众号配置列表
+    const wechatConfigs = data.wechatConfigs || [];
+    
+    // 如果指定了配置ID，则返回对应的配置
+    if (wechatConfigId && wechatConfigs.length > 0) {
+      const config = wechatConfigs.find((c: any) => c.id === wechatConfigId);
+      if (config) {
+        return {
+          wechatAppId: config.appId,
+          wechatAppSecret: config.appSecret,
+          wechatToken: config.token || '',
+          wechatEncodingAESKey: config.encodingAESKey || '',
+        };
+      }
+    }
+    
+    // 如果没有指定ID或找不到对应配置，则返回默认配置
+    const defaultConfig = wechatConfigs.find((c: any) => c.isDefault) || wechatConfigs[0];
+    
+    if (defaultConfig) {
+      return {
+        wechatAppId: defaultConfig.appId,
+        wechatAppSecret: defaultConfig.appSecret,
+        wechatToken: defaultConfig.token || '',
+        wechatEncodingAESKey: defaultConfig.encodingAESKey || '',
+      };
+    }
+    
+    // 如果没有配置，则返回空值
+    return {
+      wechatAppId: '',
+      wechatAppSecret: '',
+      wechatToken: '',
+      wechatEncodingAESKey: '',
+    };
+  } catch (error) {
+    console.error('获取微信配置失败:', error);
+    // 出错时返回空值
+    return {
+      wechatAppId: '',
+      wechatAppSecret: '',
+      wechatToken: '',
+      wechatEncodingAESKey: '',
+    };
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, content, coverImage, articleId } = await request.json();
+    const { title, content, coverImage, articleId, wechatConfigId } = await request.json();
     
     if (!content) {
       return NextResponse.json(
@@ -23,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userConfig = await getUserConfig();
+    const userConfig = await getUserConfig(wechatConfigId);
     
     // 检查是否有微信API配置
     if (userConfig.wechatAppId && userConfig.wechatAppSecret) {

@@ -327,7 +327,11 @@ export default function EditArticlePage() {
     allowComment: true,
     isPaid: false,
     collection: '',
+    wechatConfigId: '',
   });
+  
+  // 微信公众号配置列表
+  const [wechatConfigs, setWechatConfigs] = useState<any[]>([]);
   
   // 确保组件挂载后才渲染预览，避免服务器端渲染问题
   const [isMounted, setIsMounted] = useState(false);
@@ -337,7 +341,7 @@ export default function EditArticlePage() {
     
     // 在实际应用中，这里会从API获取文章详情
     // 这里使用模拟数据和localStorage中保存的文章
-    const fetchArticle = () => {
+    const fetchArticle = async () => {
       // 先查找模拟数据
       let foundArticle = mockArticles.find(a => a.id === params.id);
       
@@ -361,6 +365,32 @@ export default function EditArticlePage() {
         }));
       }
       setLoading(false);
+      
+      // 获取微信公众号配置列表
+      try {
+        const response = await fetch('/api/user-config?type=wechat');
+        const result = await response.json();
+        if (result && result.wechatConfigs) {
+          setWechatConfigs(result.wechatConfigs);
+          
+          // 如果有默认配置，则设置为选中的配置
+          const defaultConfig = result.wechatConfigs.find((c: any) => c.isDefault);
+          if (defaultConfig) {
+            setPublishData(prev => ({
+              ...prev,
+              wechatConfigId: defaultConfig.id
+            }));
+          } else if (result.wechatConfigs.length > 0) {
+            // 如果没有默认配置但有配置，则选择第一个
+            setPublishData(prev => ({
+              ...prev,
+              wechatConfigId: result.wechatConfigs[0].id
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('获取微信公众号配置失败:', error);
+      }
     };
 
     fetchArticle();
@@ -421,10 +451,50 @@ export default function EditArticlePage() {
   };
   
   // 处理发布推文
-  const handlePublish = (e: React.FormEvent) => {
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    handleSubmit(e, '已发布');
-    setIsModalOpen(false);
+    
+    // 如果没有选择微信公众号配置，提示用户
+    if (!publishData.wechatConfigId && wechatConfigs.length > 0) {
+      alert('请选择要发布到的微信公众号');
+      return;
+    }
+    
+    try {
+      // 调用发布API
+      const response = await fetch('/api/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: publishData.title,
+          content: content,
+          articleId: params.id,
+          wechatConfigId: publishData.wechatConfigId
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 更新文章状态为已发布
+        handleSubmit(e, '已发布');
+        setIsModalOpen(false);
+        
+        // 显示发布成功提示
+        setToast({
+          visible: true,
+          message: `推文已成功发布到微信公众号！${result.articleUrl ? '\n链接: ' + result.articleUrl : ''}`,
+          type: 'success'
+        });
+      } else {
+        alert(`发布失败: ${result.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('发布文章错误:', error);
+      alert('发布文章失败，请稍后再试');
+    }
   };
 
   if (loading) {
@@ -570,6 +640,32 @@ export default function EditArticlePage() {
                 onChange={handlePublishDataChange}
                 placeholder="请输入合集名称（可选）"
               />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label htmlFor="wechatConfigId" style={styles.label}>发布到微信公众号</label>
+              <select
+                id="wechatConfigId"
+                name="wechatConfigId"
+                style={{...styles.input, backgroundColor: 'white'}}
+                value={publishData.wechatConfigId}
+                onChange={handlePublishDataChange}
+              >
+                {wechatConfigs.length === 0 ? (
+                  <option value="">未配置微信公众号</option>
+                ) : (
+                  wechatConfigs.map(config => (
+                    <option key={config.id} value={config.id}>
+                      {config.name} {config.isDefault ? '(默认)' : ''}
+                    </option>
+                  ))
+                )}
+              </select>
+              {wechatConfigs.length === 0 && (
+                <p style={{fontSize: '0.75rem', color: '#ef4444', marginTop: '4px'}}>
+                  请先在<a href="/settings/wechat" style={{color: '#2563eb', textDecoration: 'underline'}}>设置页面</a>配置微信公众号
+                </p>
+              )}
             </div>
             
             <div style={styles.checkboxGroup}>
