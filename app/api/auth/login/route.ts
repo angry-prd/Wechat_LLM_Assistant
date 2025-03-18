@@ -1,26 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 从auth路由导入用户数据（在实际应用中应该从数据库获取）
+// 导入用户数据（在实际应用中应该从数据库获取）
 // 注意：这里简化处理，实际应用中应该使用数据库
-let users: Record<string, any> = {};
+// 使用与注册API相同的用户数据存储
+// 从共享数据文件导入用户数据
+import { users } from '@/app/api/auth/shared-data';
 
 // 登录接口
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
+    const { phone, password } = await request.json();
     
-    if (!username || !password) {
+    if (!phone || !password) {
       return NextResponse.json(
-        { error: '用户名和密码不能为空' },
+        { error: '手机号和密码不能为空' },
         { status: 400 }
       );
     }
     
-    // 检查用户是否存在
-    const user = users[username];
+    // 检查用户是否存在（通过手机号查找）
+    let user = null;
+    for (const key in users) {
+      if (users[key].phone === phone) {
+        user = users[key];
+        break;
+      }
+    }
+    
     if (!user) {
       return NextResponse.json(
-        { error: '用户名或密码错误' },
+        { error: '手机号或密码错误' },
         { status: 401 }
       );
     }
@@ -28,7 +37,7 @@ export async function POST(request: NextRequest) {
     // 验证密码（实际应用中应该比较哈希值）
     if (user.password !== password) {
       return NextResponse.json(
-        { error: '用户名或密码错误' },
+        { error: '手机号或密码错误' },
         { status: 401 }
       );
     }
@@ -46,7 +55,7 @@ export async function POST(request: NextRequest) {
       message: '登录成功',
       user: {
         username: user.username,
-        email: user.email
+        phone: user.phone
       }
     });
     

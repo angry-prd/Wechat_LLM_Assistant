@@ -184,22 +184,69 @@ export default function ArticlesPage() {
       setError(null);
       
       try {
+        // 从API获取文章
         const response = await fetch(`/api/articles?userId=${userId}`);
         
-        if (!response.ok) {
-          throw new Error('获取文章列表失败');
+        let apiArticles: Article[] = [];
+        if (response.ok) {
+          apiArticles = await response.json();
+        } else {
+          console.error('获取API文章列表失败');
         }
         
-        const data: Article[] = await response.json();
+        // 从localStorage获取保存的草稿文章
+        let localArticles: Article[] = [];
+        
+        // 获取所有localStorage中的文章草稿
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('article_draft_')) {
+            try {
+              const articleData = localStorage.getItem(key);
+              if (articleData) {
+                const article = JSON.parse(articleData);
+                localArticles.push(article);
+              }
+            } catch (e) {
+              console.error('解析本地文章失败:', e);
+            }
+          }
+        }
+        
+        // 检查是否有新创建的文章内容
+        const newArticleContent = localStorage.getItem('newArticleContent');
+        const newArticleTitle = localStorage.getItem('newArticleTitle') || '新文章草稿';
+        
+        if (newArticleContent) {
+          // 创建新的草稿文章
+          const newDraftId = `draft_${Date.now()}`;
+          const newDraft: Article = {
+            id: newDraftId,
+            title: newArticleTitle,
+            content: newArticleContent,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          // 保存到localStorage并添加到本地文章列表
+          localStorage.setItem(`article_draft_${newDraftId}`, JSON.stringify(newDraft));
+          localStorage.removeItem('newArticleContent');
+          localStorage.removeItem('newArticleTitle');
+          
+          localArticles.push(newDraft);
+        }
+        
+        // 合并API和本地文章
+        const allArticles = [...apiArticles, ...localArticles];
         
         // 转换为显示格式
-        const displayArticles: DisplayArticle[] = data.map(article => ({
+        const displayArticles: DisplayArticle[] = allArticles.map(article => ({
           id: article.id,
-          title: article.title,
-          summary: article.content.length > 100 
+          title: article.title || '无标题',
+          summary: article.content?.length > 100 
             ? article.content.replace(/[#*`]/g, '').substring(0, 100) + '...' 
-            : article.content.replace(/[#*`]/g, ''),
-          createdAt: new Date(article.createdAt).toLocaleDateString('zh-CN'),
+            : (article.content || '').replace(/[#*`]/g, ''),
+          createdAt: new Date(article.createdAt || new Date()).toLocaleDateString('zh-CN'),
           status: '草稿' // 默认状态，实际应用中应该从数据中获取
         }));
         
@@ -223,13 +270,6 @@ export default function ArticlesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    // 从localStorage获取保存的文章
-    if (typeof window !== 'undefined') {
-      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-      if (savedArticles.length > 0) {
-        setArticles([...mockArticles, ...savedArticles]);
-      }
-    }
   }, []);
 
   // 过滤和搜索文章

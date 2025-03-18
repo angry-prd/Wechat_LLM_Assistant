@@ -19,7 +19,8 @@ export default function WechatSettings() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as const });
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [configExpanded, setConfigExpanded] = useState(true);
   
   // 表单状态
   const [formData, setFormData] = useState<WechatConfig>({
@@ -31,6 +32,24 @@ export default function WechatSettings() {
     defaultArticleAuthor: '',
     defaultArticleCopyright: ''
   });
+  
+  // 获取当前登录用户ID
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        if (user && user.id) {
+          setFormData(prev => ({
+            ...prev,
+            userId: user.id
+          }));
+        }
+      } catch (e) {
+        console.error('解析用户数据失败', e);
+      }
+    }
+  }, []);
   
   // 加载微信配置
   const fetchWechatConfig = async () => {
@@ -195,8 +214,27 @@ export default function WechatSettings() {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
-            <form onSubmit={saveWechatConfig}>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div 
+              className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100"
+              onClick={() => setConfigExpanded(!configExpanded)}
+            >
+              <h2 className="text-lg font-semibold">微信公众号配置信息</h2>
+              <div className="flex items-center">
+                <svg 
+                  className={`w-5 h-5 text-gray-500 transition-transform ${configExpanded ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            
+            {configExpanded && (
+              <div className="p-6">
+                <form onSubmit={saveWechatConfig}>
               <div className="mb-6">
                 <h2 className="text-lg font-semibold mb-4">用户标识</h2>
                 <div className="flex items-end gap-4">
@@ -325,6 +363,8 @@ export default function WechatSettings() {
                 </button>
               </div>
             </form>
+              </div>
+            )}
           </div>
         </div>
       </div>

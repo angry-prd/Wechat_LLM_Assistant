@@ -23,12 +23,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(articles[userId]);
   } catch (error) {
-    console.error('删除文章失败:', error);
-    return NextResponse.json(
-      { error: '删除文章失败，请稍后再试' },
-      { status: 500 }
-    );
-  } {
     console.error('获取文章失败:', error);
     return NextResponse.json(
       { error: '获取文章失败，请稍后再试' },
@@ -67,12 +61,6 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(newArticle, { status: 201 });
   } catch (error) {
-    console.error('删除文章失败:', error);
-    return NextResponse.json(
-      { error: '删除文章失败，请稍后再试' },
-      { status: 500 }
-    );
-  } {
     console.error('创建文章失败:', error);
     return NextResponse.json(
       { error: '创建文章失败，请稍后再试' },
@@ -119,12 +107,6 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json(articles[userId][articleIndex]);
   } catch (error) {
-    console.error('删除文章失败:', error);
-    return NextResponse.json(
-      { error: '删除文章失败，请稍后再试' },
-      { status: 500 }
-    );
-  } {
     console.error('更新文章失败:', error);
     return NextResponse.json(
       { error: '更新文章失败，请稍后再试' },
@@ -174,3 +156,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
+}

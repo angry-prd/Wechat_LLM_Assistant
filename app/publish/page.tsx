@@ -24,7 +24,7 @@ export default function Publish() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [userConfigs, setUserConfigs] = useState<UserConfig[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('default');
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as const });
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   useEffect(() => {
     fetchArticles();

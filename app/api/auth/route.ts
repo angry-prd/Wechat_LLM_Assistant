@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 模拟数据库中的用户
-let users: Record<string, any> = {};
+// 使用共享数据存储中的用户数据
+import { users } from './shared-data';
 
 // 注册新用户
 export async function POST(request: NextRequest) {
   try {
-    const { username, password, email } = await request.json();
+    const { username, password, phone } = await request.json();
     
-    if (!username || !password || !email) {
+    if (!username || !password || !phone) {
       return NextResponse.json(
-        { error: '用户名、密码和邮箱不能为空' },
+        { error: '用户名、密码和手机号不能为空' },
         { status: 400 }
       );
     }
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const newUser = {
       username,
       password, // 注意：实际应用中应该存储哈希后的密码
-      email,
+      phone,
       createdAt: new Date().toISOString(),
     };
     
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       message: '注册成功',
       user: {
         username: newUser.username,
-        email: newUser.email,
+        phone: newUser.phone,
         createdAt: newUser.createdAt
       }
     }, { status: 201 });

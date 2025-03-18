@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface ModelConfig {
   id: string;
@@ -18,6 +19,8 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingModel, setEditingModel] = useState<null | ModelConfig>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
+  const [userId, setUserId] = useState('default'); // 默认用户ID
   
   // 表单状态
   const [formData, setFormData] = useState({
@@ -33,7 +36,23 @@ export default function Settings() {
   const fetchModels = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/chat-models');
+      // 获取当前登录用户ID
+      const userData = localStorage.getItem('user');
+      let currentUserId = 'default';
+      
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user && user.id) {
+            currentUserId = user.id;
+            setUserId(currentUserId);
+          }
+        } catch (e) {
+          console.error('解析用户数据失败', e);
+        }
+      }
+      
+      const response = await fetch(`/api/chat-models?userId=${currentUserId}`);
       const result = await response.json();
       
       if (result.success) {
@@ -158,12 +177,22 @@ export default function Settings() {
     router.push('/ai-chat');
   };
   
+  // 防止页面闪现的加载状态
+  const [pageReady, setPageReady] = useState(false);
+  
+  useEffect(() => {
+    // 当模型数据加载完成后，标记页面准备就绪
+    if (!isLoading) {
+      setPageReady(true);
+    }
+  }, [isLoading]);
+  
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col overflow-hidden">
         <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">系统设置</h1>
+            <h1 className="text-2xl font-bold">AI模型配置</h1>
             <div className="flex space-x-4">
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -171,33 +200,23 @@ export default function Settings() {
               >
                 添加模型
               </button>
-              <button
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                onClick={goToChat}
-              >
-                返回聊天
-              </button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
-              <h2 className="text-xl font-semibold mb-2">聊天模型配置</h2>
-              <p className="text-gray-600 mb-4">配置AI聊天模型的API密钥和参数</p>
-              <p className="text-sm text-gray-500 mb-4">当前已配置 {models.length} 个模型</p>
-            </div>
-            
-            <div 
-              className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => router.push('/settings/wechat')}
-            >
-              <h2 className="text-xl font-semibold mb-2">微信公众号配置</h2>
-              <p className="text-gray-600 mb-4">配置微信公众号的AppID和密钥</p>
-              <p className="text-sm text-gray-500 mb-4">用于发布文章到微信公众号</p>
+          <div className="mb-6">
+            <p className="text-gray-600 mb-4">当前已配置 {models.length} 个模型</p>
+            <div className="flex justify-end mb-4">
+              <Link href="/settings/wechat" className="text-blue-600 hover:text-blue-800">
+                切换到微信公众号配置 →
+              </Link>
             </div>
           </div>
           
-          {isLoading && models.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <p className="text-gray-500">加载中...</p>
+            </div>
+          ) : !pageReady ? (
             <div className="flex justify-center py-10">
               <p className="text-gray-500">加载中...</p>
             </div>
@@ -215,39 +234,59 @@ export default function Settings() {
               </button>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-4">
               {models.map((model) => (
-                <div key={model.id} className="bg-white rounded-lg shadow p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold">{model.name}</h3>
-                    {model.isDefault && (
-                      <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                        默认
-                      </span>
-                    )}
+                <div key={model.id} className="bg-white rounded-lg shadow overflow-hidden">
+                  <div 
+                    className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50"
+                    onClick={() => setExpandedModelId(expandedModelId === model.id ? null : model.id)}
+                  >
+                    <div className="flex items-center">
+                      <h3 className="text-lg font-semibold">{model.name}</h3>
+                      {model.isDefault && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full ml-2">
+                          默认
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <svg 
+                        className={`w-5 h-5 text-gray-500 transition-transform ${expandedModelId === model.id ? 'transform rotate-180' : ''}`}
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
-                  <div className="space-y-2 text-sm text-gray-600 mb-4">
-                    <p><span className="font-semibold">API端点:</span> {model.endpoint}</p>
-                    <p><span className="font-semibold">模型:</span> {model.model}</p>
-                    <p>
-                      <span className="font-semibold">API密钥:</span>{' '}
-                      {model.hasApiKey ? '******' : '未设置'}
-                    </p>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                      onClick={() => openEditModelForm(model)}
-                    >
-                      编辑
-                    </button>
-                    <button
-                      className="px-3 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      onClick={() => deleteModel(model.id)}
-                    >
-                      删除
-                    </button>
-                  </div>
+                  
+                  {expandedModelId === model.id && (
+                    <div className="p-4 border-t border-gray-100">
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        <p><span className="font-semibold">API端点:</span> {model.endpoint}</p>
+                        <p><span className="font-semibold">模型:</span> {model.model}</p>
+                        <p>
+                          <span className="font-semibold">API密钥:</span>{' '}
+                          {model.hasApiKey ? '******' : '未设置'}
+                        </p>
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                          onClick={() => openEditModelForm(model)}
+                        >
+                          编辑
+                        </button>
+                        <button
+                          className="px-3 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                          onClick={() => deleteModel(model.id)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -122,9 +122,17 @@ const styles = {
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    // 检查用户是否已登录
+    const checkLoginStatus = () => {
+      const userData = localStorage.getItem('user');
+      setIsLoggedIn(!!userData);
+    };
+    
+    checkLoginStatus();
   }, []);
 
   const features = [
@@ -159,7 +167,7 @@ export default function Home() {
           一个集成了AI大模型和Markdown编辑器的微信公众号推文助手
         </p>
         <div style={styles.buttonContainer}>
-          <Link href="/ai-chat" style={styles.primaryButton}>
+          <Link href={isLoggedIn ? "/ai-chat" : "/login"} style={styles.primaryButton}>
             开始使用
           </Link>
         </div>

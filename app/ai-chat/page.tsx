@@ -101,7 +101,7 @@ export default function AIChat() {
     const newSessionId = Date.now().toString();
     const newSession: ChatSession = {
       id: newSessionId,
-      title: `新对话 ${new Date().toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+      title: `新对话`,
       lastMessage: '开始新对话',
       timestamp: new Date().toISOString(),
       modelId: selectedModelId
@@ -319,10 +319,6 @@ export default function AIChat() {
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-base font-medium text-gray-800 truncate">{session.title}</p>
-                  <p className="text-sm text-gray-600 truncate">{session.lastMessage}</p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(session.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </p>
                 </div>
                 <button 
                   onClick={(e) => deleteSession(session.id, e)}
@@ -347,27 +343,6 @@ export default function AIChat() {
                   {showSessionList ? '◀' : '▶'}
                 </button>
                 <h1 className="text-xl font-bold">AI 聊天</h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                {models.length > 0 && (
-                  <select
-                    className="px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={selectedModelId}
-                    onChange={(e) => setSelectedModelId(e.target.value)}
-                  >
-                    {models.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <button
-                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={goToSettings}
-                >
-                  模型配置
-                </button>
               </div>
             </div>
           </div>
@@ -540,10 +515,10 @@ export default function AIChat() {
           {/* 固定底部输入区域 */}
           <div className="sticky bottom-0 z-10 bg-white shadow-lg border-t border-gray-200 p-3">
             <div className="max-w-4xl mx-auto">
-              <div className="flex space-x-2">
+              <div className="relative">
                 <input
                   type="text"
-                  className="flex-1 px-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 pr-24 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="输入消息..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -555,13 +530,41 @@ export default function AIChat() {
                   }}
                   disabled={isLoading || models.length === 0}
                 />
-                <button
-                  className={`px-4 py-2 text-sm ${isLoading || models.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  onClick={sendMessage}
-                  disabled={isLoading || models.length === 0}
-                >
-                  {isLoading ? '发送中...' : '发送'}
-                </button>
+                <div className="absolute right-0 top-0 h-full flex items-center">
+                  <button
+                    className={`h-full px-4 text-sm ${isLoading || models.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-tr-md rounded-br-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    onClick={sendMessage}
+                    disabled={isLoading || models.length === 0}
+                  >
+                    {isLoading ? '发送中...' : '发送'}
+                  </button>
+                </div>
+                
+                {/* 模型选择下拉框 */}
+                <div className="mt-2 flex justify-end items-center">
+                  {models.length > 0 && (
+                    <div className="flex items-center text-xs">
+                      <span className="text-gray-500 mr-2">当前模型:</span>
+                      <select
+                        className="px-2 py-1 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={selectedModelId}
+                        onChange={(e) => setSelectedModelId(e.target.value)}
+                      >
+                        {models.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="ml-2 text-xs text-blue-600 hover:text-blue-800"
+                        onClick={goToSettings}
+                      >
+                        配置
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

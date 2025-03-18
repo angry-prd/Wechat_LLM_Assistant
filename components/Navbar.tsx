@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot, FaUser } from 'react-icons/fa';
+import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot, FaUser, FaSignOutAlt } from 'react-icons/fa';
 
 // 内联样式定义
 const styles = {
@@ -120,9 +120,31 @@ const styles = {
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [user, setUser] = useState<{username: string; phone: string} | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // 检查当前路径是否匹配
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
+  
+  // 切换移动菜单
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+  
+  // 获取用户信息
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
 
   useEffect(() => {
     // 标记客户端渲染已完成
@@ -139,9 +161,34 @@ export default function Navbar() {
     // 添加窗口大小变化监听
     window.addEventListener('resize', checkIfMobile);
     
+    // 检查用户登录状态
+    const checkLoginStatus = () => {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          setUser(JSON.parse(userData));
+        } catch (e) {
+          console.error('解析用户数据失败', e);
+          localStorage.removeItem('user');
+        }
+      }
+    };
+    
+    checkLoginStatus();
+    
     // 清理函数
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
+  
+  // 退出登录
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('session_token');
+    localStorage.removeItem('username');
+    setUser(null);
+    setUsername(null);
+    router.push('/');
+  };
 
   const navItems = [
     { name: '首页', href: '/', icon: <FaHome size={16} style={{ marginRight: '8px' }} /> },
@@ -214,23 +261,67 @@ export default function Navbar() {
                   {item.name}
                 </Link>
               ))}
+              
+              {/* 用户信息和退出按钮 */}
+              {username ? (
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '16px', position: 'relative' }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      padding: '4px 12px', 
+                      backgroundColor: '#f3f4f6', 
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                  >
+                    <FaUser size={14} style={{ color: '#4b5563', marginRight: '8px' }} />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 'medium', color: '#374151' }}>{username}</span>
+                  </div>
+                  
+                  {showUserMenu && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '8px',
+                      backgroundColor: 'white',
+                      borderRadius: '6px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                      zIndex: 50,
+                      width: '150px',
+                      overflow: 'hidden'
+                    }}>
+                      <button
+                        onClick={handleLogout}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: '100%',
+                          padding: '10px 16px',
+                          fontSize: '0.875rem',
+                          color: '#dc2626',
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <FaSignOutAlt size={14} style={{ marginRight: '8px' }} />
+                        退出登录
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
           
           {/* Mobile menu button */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Link href="/login" style={{
-              display: !isMobile ? 'flex' : 'none',
-              alignItems: 'center',
-              color: '#6b7280',
-              textDecoration: 'none',
-              marginRight: '12px',
-              fontSize: '0.875rem',
-              fontWeight: 'medium',
-            }}>
-              <FaUser size={16} style={{ marginRight: '8px' }} />
-              <span>登录/注册</span>
-            </Link>
             {isMobile && (
               <button
                 type="button"
@@ -293,17 +384,49 @@ export default function Navbar() {
               {item.name}
             </Link>
           ))}
-          <Link
-            href="/login"
-            style={{
-              ...styles.mobileNavItem,
-              ...(pathname === '/login' ? styles.mobileNavItemActive : styles.mobileNavItemInactive),
-            }}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <FaUser size={16} style={{ marginRight: '8px' }} />
-            登录/注册
-          </Link>
+          {username ? (
+            <>
+              <div
+                style={{
+                  ...styles.mobileNavItem,
+                  backgroundColor: '#f3f4f6',
+                }}
+              >
+                <FaUser size={16} style={{ marginRight: '8px' }} />
+                {username}
+              </div>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  ...styles.mobileNavItem,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  width: '100%',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  color: '#dc2626',
+                }}
+              >
+                <FaSignOutAlt size={16} style={{ marginRight: '8px' }} />
+                退出登录
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              style={{
+                ...styles.mobileNavItem,
+                ...(pathname === '/login' ? styles.mobileNavItemActive : styles.mobileNavItemInactive),
+              }}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <FaUser size={16} style={{ marginRight: '8px' }} />
+              登录
+            </Link>
+          )}
         </div>
       )}
     </nav>
