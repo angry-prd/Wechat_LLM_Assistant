@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaSync, FaCopy, FaFileAlt } from 'react-icons/fa';
+import Link from 'next/link';
+import { FaSync, FaCopy, FaFileAlt, FaPlus } from 'react-icons/fa';
 // 移除Sidebar导入
 
 interface ModelConfig {
@@ -101,7 +102,7 @@ export default function AIChat() {
     const newSessionId = Date.now().toString();
     const newSession: ChatSession = {
       id: newSessionId,
-      title: `新对话`,
+      title: `未命名对话`,
       lastMessage: '开始新对话',
       timestamp: new Date().toISOString(),
       modelId: selectedModelId
@@ -160,10 +161,38 @@ export default function AIChat() {
       // 获取第一条用户消息作为标题基础
       const firstUserMessage = messages.find(m => m.role === 'user');
       if (firstUserMessage) {
-        // 截取前20个字符作为标题
-        const title = firstUserMessage.content.length > 20 
-          ? firstUserMessage.content.substring(0, 20) + '...' 
-          : firstUserMessage.content;
+        // 智能提取聊天主题作为标题
+        let title = '';
+        const content = firstUserMessage.content;
+        
+        // 如果内容包含问题，使用问题作为标题
+        if (content.includes('?') || content.includes('？')) {
+          const questionMatch = content.match(/([^.!?。！？]+[?？])/g);
+          if (questionMatch && questionMatch[0]) {
+            title = questionMatch[0].length > 30 
+              ? questionMatch[0].substring(0, 30) + '...' 
+              : questionMatch[0];
+          }
+        } 
+        // 如果内容以命令或请求开头
+        else if (content.match(/^(请|帮我|如何|怎样|怎么|我想|我需要|我要|生成|创建|制作|写一个|写一篇|分析|解释|比较|评估|优化)/)) {
+          const lines = content.split('\n');
+          title = lines[0].length > 30 ? lines[0].substring(0, 30) + '...' : lines[0];
+        }
+        // 如果内容包含关键词
+        else if (content.match(/(关于|主题|话题|讨论|探讨|研究|学习|了解)/)) {
+          const keywordMatch = content.match(/关于([^。！？.!?]+)|([^。！？.!?]+)(主题|话题|讨论|探讨|研究)/);
+          if (keywordMatch) {
+            const keyword = keywordMatch[1] || keywordMatch[2];
+            if (keyword) {
+              title = keyword.length > 30 ? keyword.substring(0, 30) + '...' : keyword;
+            }
+          }
+        }
+        // 默认使用内容的前30个字符
+        if (!title) {
+          title = content.length > 30 ? content.substring(0, 30) + '...' : content;
+        }
         
         // 更新当前会话标题
         const updatedSessions = chatSessions.map(session => 
@@ -513,12 +542,12 @@ export default function AIChat() {
           </div>
           
           {/* 固定底部输入区域 */}
-          <div className="sticky bottom-0 z-10 bg-white shadow-lg border-t border-gray-200 p-3">
+          <div className="sticky bottom-0 z-10 bg-white shadow-lg border-t border-gray-200 p-3 pb-5 mb-2">
             <div className="max-w-4xl mx-auto">
               <div className="relative">
                 <input
                   type="text"
-                  className="w-full px-4 py-2 pr-24 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 pr-24 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="输入消息..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -541,14 +570,15 @@ export default function AIChat() {
                 </div>
                 
                 {/* 模型选择下拉框 */}
-                <div className="mt-2 flex justify-end items-center">
+                <div className="mt-3 flex justify-between items-center">
                   {models.length > 0 && (
-                    <div className="flex items-center text-xs">
+                    <div className="flex items-center text-sm">
                       <span className="text-gray-500 mr-2">当前模型:</span>
                       <select
-                        className="px-2 py-1 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                         value={selectedModelId}
                         onChange={(e) => setSelectedModelId(e.target.value)}
+                        disabled={isLoading}
                       >
                         {models.map((model) => (
                           <option key={model.id} value={model.id}>
@@ -556,12 +586,22 @@ export default function AIChat() {
                           </option>
                         ))}
                       </select>
-                      <button
-                        className="ml-2 text-xs text-blue-600 hover:text-blue-800"
-                        onClick={goToSettings}
-                      >
-                        配置
-                      </button>
+                      <div className="flex ml-2">
+                        <button
+                          className="px-2 py-1 text-sm text-blue-600 hover:text-blue-800 border border-blue-600 rounded-md hover:bg-blue-50 flex items-center"
+                          onClick={goToSettings}
+                          title="配置模型"
+                        >
+                          配置
+                        </button>
+                        <button
+                          className="ml-2 px-2 py-1 text-sm text-green-600 hover:text-green-800 border border-green-600 rounded-md hover:bg-green-50 flex items-center"
+                          onClick={() => router.push('/settings')}
+                          title="新增模型"
+                        >
+                          <FaPlus className="mr-1" /> 新增
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

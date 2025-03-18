@@ -192,210 +192,36 @@ export default function Settings() {
       <div className="flex flex-col overflow-hidden">
         <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">AI模型配置</h1>
-            <div className="flex space-x-4">
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={openNewModelForm}
-              >
-                添加模型
-              </button>
-            </div>
+            <h1 className="text-2xl font-bold">系统配置</h1>
           </div>
           
-          <div className="mb-6">
-            <p className="text-gray-600 mb-4">当前已配置 {models.length} 个模型</p>
-            <div className="flex justify-end mb-4">
-              <Link href="/settings/wechat" className="text-blue-600 hover:text-blue-800">
-                切换到微信公众号配置 →
+          {/* 配置类型选项卡 */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <div className="mr-6">
+              <button
+                className="py-2 px-1 border-b-2 border-blue-500 font-medium text-blue-600"
+              >
+                AI模型配置
+              </button>
+            </div>
+            <div>
+              <Link href="/settings/wechat">
+                <button
+                  className="py-2 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                >
+                  微信公众号配置
+                </button>
               </Link>
             </div>
           </div>
-          
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <p className="text-gray-500">加载中...</p>
-            </div>
-          ) : !pageReady ? (
-            <div className="flex justify-center py-10">
-              <p className="text-gray-500">加载中...</p>
-            </div>
-          ) : models.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-6 text-center">
-              <p className="text-lg text-gray-600 mb-4">暂无配置的聊天模型</p>
-              <p className="text-gray-500 mb-6">
-                添加一个模型配置以开始使用聊天功能
-              </p>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={openNewModelForm}
-              >
-                添加第一个模型
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {models.map((model) => (
-                <div key={model.id} className="bg-white rounded-lg shadow overflow-hidden">
-                  <div 
-                    className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50"
-                    onClick={() => setExpandedModelId(expandedModelId === model.id ? null : model.id)}
-                  >
-                    <div className="flex items-center">
-                      <h3 className="text-lg font-semibold">{model.name}</h3>
-                      {model.isDefault && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full ml-2">
-                          默认
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      <svg 
-                        className={`w-5 h-5 text-gray-500 transition-transform ${expandedModelId === model.id ? 'transform rotate-180' : ''}`}
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  {expandedModelId === model.id && (
-                    <div className="p-4 border-t border-gray-100">
-                      <div className="space-y-2 text-sm text-gray-600 mb-4">
-                        <p><span className="font-semibold">API端点:</span> {model.endpoint}</p>
-                        <p><span className="font-semibold">模型:</span> {model.model}</p>
-                        <p>
-                          <span className="font-semibold">API密钥:</span>{' '}
-                          {model.hasApiKey ? '******' : '未设置'}
-                        </p>
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                          onClick={() => openEditModelForm(model)}
-                        >
-                          编辑
-                        </button>
-                        <button
-                          className="px-3 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
-                          onClick={() => deleteModel(model.id)}
-                        >
-                          删除
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* 模型配置表单模态框 */}
-          {isModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-                <h2 className="text-xl font-semibold mb-4">
-                  {editingModel ? '编辑模型配置' : '添加新模型配置'}
-                </h2>
-                <form onSubmit={saveModelConfig}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        名称
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="模型名称 (例如: GPT-3.5)"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        API密钥
-                      </label>
-                      <input
-                        type="password"
-                        name="apiKey"
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={editingModel ? '留空以保持不变' : 'API密钥'}
-                        value={formData.apiKey}
-                        onChange={handleInputChange}
-                        required={!editingModel}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        API端点
-                      </label>
-                      <input
-                        type="url"
-                        name="endpoint"
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://api.example.com/v1/chat/completions"
-                        value={formData.endpoint}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        模型标识符
-                      </label>
-                      <input
-                        type="text"
-                        name="model"
-                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="gpt-3.5-turbo"
-                        value={formData.model}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="isDefault"
-                        name="isDefault"
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        checked={formData.isDefault}
-                        onChange={handleInputChange}
-                      />
-                      <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-700">
-                        设为默认模型
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-3 mt-6">
-                    <button
-                      type="button"
-                      className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                      onClick={() => setIsModalOpen(false)}
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? '保存中...' : '保存'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
+          <div className="flex space-x-4">
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={openNewModelForm}
+            >
+              添加模型
+            </button>
+          </div>
         </div>
       </div>
     </div>

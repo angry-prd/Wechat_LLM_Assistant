@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { API_ENDPOINTS } from '@/config/api';
 import Toast from '@/components/Toast';
 
@@ -203,13 +204,25 @@ export default function WechatSettings() {
           />
           
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">微信公众号配置</h1>
-            <div className="flex space-x-4">
+            <h1 className="text-2xl font-bold">系统配置</h1>
+          </div>
+          
+          {/* 配置类型选项卡 */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <div className="mr-6">
+              <Link href="/settings">
+                <button
+                  className="py-2 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                >
+                  AI模型配置
+                </button>
+              </Link>
+            </div>
+            <div>
               <button
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                onClick={() => router.push('/settings')}
+                className="py-2 px-1 border-b-2 border-blue-500 font-medium text-blue-600"
               >
-                返回设置
+                微信公众号配置
               </button>
             </div>
           </div>
