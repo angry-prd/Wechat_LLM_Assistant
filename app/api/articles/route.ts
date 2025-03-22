@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
-// 模拟数据库中的文章 - 按用户ID组织
-let articles: Record<string, Array<{
-  id: string;
+// 文章接口
+interface ArticleData {
+  id?: string;
   title: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
   userId: string;
-}>> = {};
+}
 
 // 获取用户的所有文章
 export async function GET(request: NextRequest) {
@@ -16,12 +15,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || 'default';
     
-    // 如果用户没有文章，返回空数组
-    if (!articles[userId]) {
-      return NextResponse.json([]);
-    }
+    // 从数据库获取用户文章
+    const userArticles = await prisma.article.findMany({
+      where: {
+        userId: userId
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      }
+    });
     
-    return NextResponse.json(articles[userId]);
+    return NextResponse.json(userArticles);
   } catch (error) {
     console.error('获取文章失败:', error);
     return NextResponse.json(
@@ -43,23 +47,16 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const newArticle = {
-      id: Date.now().toString(),
-      title,
-      content,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userId
-    };
+    // 使用Prisma创建新文章
+    const newArticle = await prisma.article.create({
+      data: {
+        title,
+        content,
+        userId
+      }
+    });
     
-    // 如果用户没有文章集合，创建一个
-    if (!articles[userId]) {
-      articles[userId] = [];
-    }
-    
-    articles[userId].push(newArticle);
-    
-    return NextResponse.json(newArticle, { status: 201 });
+    return NextResponse.json(newArticle, { status: 201 })
   } catch (error) {
     console.error('创建文章失败:', error);
     return NextResponse.json(
@@ -81,31 +78,33 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    // 检查用户是否有文章
-    if (!articles[userId]) {
-      return NextResponse.json(
-        { error: '用户没有文章' },
-        { status: 404 }
-      );
-    }
+    // 检查文章是否存在
+    const existingArticle = await prisma.article.findUnique({
+      where: {
+        id: id
+      }
+    });
     
-    const articleIndex = articles[userId].findIndex(article => article.id === id);
-    
-    if (articleIndex === -1) {
+    if (!existingArticle) {
       return NextResponse.json(
         { error: '文章不存在' },
         { status: 404 }
       );
     }
     
-    articles[userId][articleIndex] = {
-      ...articles[userId][articleIndex],
-      title,
-      content,
-      updatedAt: new Date().toISOString(),
-    };
+    // 使用Prisma更新文章
+    const updatedArticle = await prisma.article.update({
+      where: {
+        id: id
+      },
+      data: {
+        title,
+        content,
+        updatedAt: new Date()
+      }
+    });
     
-    return NextResponse.json(articles[userId][articleIndex]);
+    return NextResponse.json(updatedArticle);
   } catch (error) {
     console.error('更新文章失败:', error);
     return NextResponse.json(
@@ -120,7 +119,6 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    const userId = searchParams.get('userId') || 'default';
     
     if (!id) {
       return NextResponse.json(
@@ -129,24 +127,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    // 检查用户是否有文章
-    if (!articles[userId]) {
-      return NextResponse.json(
-        { error: '用户没有文章' },
-        { status: 404 }
-      );
-    }
+    // 检查文章是否存在
+    const existingArticle = await prisma.article.findUnique({
+      where: {
+        id: id
+      }
+    });
     
-    const articleIndex = articles[userId].findIndex(article => article.id === id);
-    
-    if (articleIndex === -1) {
+    if (!existingArticle) {
       return NextResponse.json(
         { error: '文章不存在' },
         { status: 404 }
       );
     }
     
-    articles[userId].splice(articleIndex, 1);
+    // 使用Prisma删除文章
+    await prisma.article.delete({
+      where: {
+        id: id
+      }
+    });
     
     return NextResponse.json({ success: true });
   } catch (error) {
