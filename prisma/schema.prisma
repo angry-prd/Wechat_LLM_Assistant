@@ -26,6 +26,7 @@ model User {
   articles      Article[]
   chatModels    ChatModel[]
   userConfig    UserConfig?
+  chatHistories ChatHistory[]
 }
 
 // 聊天模型配置
@@ -66,6 +67,19 @@ model Article {
   id        String   @id @default(uuid())
   title     String
   content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 关联
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 聊天历史记录模型
+model ChatHistory {
+  id        String   @id @default(uuid())
+  title     String
+  messages  String   // JSON string of messages
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
