@@ -36,20 +36,14 @@ export default function WechatSettings() {
   
   // 获取当前登录用户ID
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        if (user && user.id) {
-          setFormData(prev => ({
-            ...prev,
-            userId: user.id
-          }));
-        }
-      } catch (e) {
-        console.error('解析用户数据失败', e);
-      }
-    }
+    // 导入getCurrentUserId函数
+    const { getCurrentUserId } = require('@/lib/auth');
+    const currentUserId = getCurrentUserId();
+    
+    setFormData(prev => ({
+      ...prev,
+      userId: currentUserId
+    }));
   }, []);
   
   // 加载微信配置

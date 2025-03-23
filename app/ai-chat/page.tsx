@@ -324,86 +324,104 @@ export default function AIChat() {
   };
   
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="flex w-full h-full">
-        {/* 历史聊天记录侧边栏 */}
-        <div className={`bg-white shadow-lg ${showSessionList ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200`}>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-800">聊天历史</h1>
-          </div>
-          <div className="mt-4 px-4">
-            <button 
-              onClick={createNewSession}
-              className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* 左侧历史聊天记录侧边栏 */}
+      <div className={`bg-white shadow-md ${showSessionList ? 'w-72' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200 relative flex flex-col h-full`}>
+        <div className="p-4 border-b border-gray-200">
+          <h1 className="text-xl font-semibold text-gray-800">聊天历史</h1>
+        </div>
+        <div className="p-3">
+          <button 
+            onClick={createNewSession}
+            className="w-full py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center"
+          >
+            <FaPlus className="mr-2" /> 新建对话
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {chatSessions.map((session) => (
+            <div 
+              key={session.id} 
+              className={`flex items-center justify-between px-3 py-3 cursor-pointer hover:bg-gray-100 ${currentSessionId === session.id ? 'bg-blue-50 border-l-4 border-blue-500' : 'border-l-4 border-transparent'}`}
+              onClick={() => switchSession(session.id)}
             >
-              新建对话
-            </button>
-          </div>
-          <div className="mt-6 overflow-y-auto max-h-[calc(100vh-150px)]">
-            {chatSessions.map((session) => (
-              <div 
-                key={session.id} 
-                className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-100 ${currentSessionId === session.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
-                onClick={() => switchSession(session.id)}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-medium text-gray-800 truncate">{session.title}</p>
-                </div>
-                <button 
-                  onClick={(e) => deleteSession(session.id, e)}
-                  className="ml-2 text-gray-400 hover:text-red-500 text-lg"
-                >
-                  🗑️
-                </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{session.title}</p>
+                <p className="text-xs text-gray-500 truncate mt-1">{new Date(session.timestamp).toLocaleDateString()}</p>
               </div>
-            ))}
+              <button 
+                onClick={(e) => deleteSession(session.id, e)}
+                className="ml-2 text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-gray-200"
+              >
+                🗑️
+              </button>
+            </div>
+          ))}
+        </div>
+        {/* 折叠按钮到侧边栏右侧边缘 */}
+        <button 
+          className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-300 p-2 rounded-l-md shadow-md z-10"
+          onClick={() => setShowSessionList(!showSessionList)}
+        >
+          {showSessionList ? '◀' : '▶'}
+        </button>
+      </div>
+      
+      {/* 右侧聊天主区域 */}
+      <div className="flex flex-col flex-1 overflow-hidden relative">
+        {/* 顶部标题栏 */}
+        <div className="sticky top-0 z-10 bg-white shadow-sm py-3 px-4 border-b border-gray-200">
+          <div className="flex items-center justify-between max-w-3xl mx-auto w-full">
+            <div className="flex items-center">
+              {!showSessionList && (
+                <button 
+                  className="mr-3 text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
+                  onClick={() => setShowSessionList(true)}
+                >
+                  ▶
+                </button>
+              )}
+              <h1 className="text-lg font-semibold">AI 聊天</h1>
+            </div>
           </div>
         </div>
         
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* 固定顶部操作区 */}
-          <div className="sticky top-0 z-10 bg-white shadow-sm py-3 px-4">
-            <div className="flex items-center justify-between max-w-4xl mx-auto">
-              <div className="flex items-center">
-                <button 
-                  className="mr-3 text-gray-600 hover:text-gray-900"
-                  onClick={() => setShowSessionList(!showSessionList)}
-                >
-                  {showSessionList ? '◀' : '▶'}
-                </button>
-                <h1 className="text-xl font-bold">AI 聊天</h1>
-              </div>
-            </div>
-          </div>
-          
-          {/* 聊天消息区域 - 可滚动 */}
-          <div className="flex-1 overflow-y-auto px-4 py-3">
-            <div className="max-w-4xl mx-auto">
+        {/* 聊天消息区域 - 可滚动 */}
+        <div className="flex-1 overflow-y-auto py-4 px-4">
+          <div className="max-w-3xl mx-auto w-full">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-gray-500">
-                  <p>没有消息历史</p>
-                  <p className="text-sm">选择一个模型并开始聊天</p>
+                  <div className="text-center max-w-md">
+                    <h3 className="text-xl font-semibold mb-2">开始新对话</h3>
+                    <p className="mb-4">选择一个模型并开始与AI助手对话</p>
+                    <button 
+                      onClick={createNewSession}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 inline-flex items-center"
+                    >
+                      <FaPlus className="mr-2" /> 新建对话
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-6">
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl shadow-sm ${message.role === 'user' ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-900'}`}
+                        className={`max-w-[85%] rounded-lg shadow-sm ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}
                       >
-                        <div className="p-2.5 text-sm whitespace-pre-wrap">{message.content}</div>
-                        <div className="px-2.5 pb-1.5 text-xs text-gray-500">
+                        <div className="p-3 text-sm whitespace-pre-wrap">{message.content}</div>
+                        <div className={`px-3 pb-2 text-xs ${message.role === 'user' ? 'text-blue-200' : 'text-gray-500'}`}>
                           {new Date(message.timestamp).toLocaleTimeString()}
                         </div>
                         
                         {/* AI回复的操作按钮 */}
                         {message.role === 'assistant' && (
-                          <div className="flex justify-end space-x-2 px-2 pb-2">
+                          <div className="flex justify-end space-x-2 px-3 pb-2 border-t border-gray-100 pt-2 mt-1">
                             <button 
-                              className="flex items-center text-sm text-gray-600 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-2 py-1"
+                              className="flex items-center text-xs text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
                               onClick={() => {
                                 // 重新生成逻辑
                                 // 找到最后一条用户消息之前的所有消息
@@ -505,7 +523,7 @@ export default function AIChat() {
                               <FaSync className="mr-1" /> 重新生成
                             </button>
                             <button 
-                              className="flex items-center text-sm text-gray-600 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-2 py-1"
+                              className="flex items-center text-xs text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
                               onClick={() => {
                                 navigator.clipboard.writeText(message.content);
                                 // 可以添加复制成功的提示
@@ -515,7 +533,7 @@ export default function AIChat() {
                               <FaCopy className="mr-1" /> 复制
                             </button>
                             <button 
-                              className="flex items-center text-sm text-gray-600 hover:text-blue-600 bg-gray-200 hover:bg-gray-300 rounded px-2 py-1"
+                              className="flex items-center text-xs text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded px-2 py-1 transition-colors"
                               onClick={() => {
                                 // 创建新文章逻辑 - 保存到localStorage并跳转
                                 localStorage.setItem('newArticleContent', message.content);
@@ -528,26 +546,64 @@ export default function AIChat() {
                               }}
                               title="创建推文"
                             >
-                              <FaFileAlt className="mr-1" /> 直接创建新推文
+                              <FaFileAlt className="mr-1" /> 创建推文
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} />
+                  ))})
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
           </div>
           
           {/* 固定底部输入区域 */}
-          <div className="sticky bottom-0 z-10 bg-white shadow-lg border-t border-gray-200 p-3 pb-5 mb-2">
-            <div className="max-w-4xl mx-auto">
-              <div className="relative">
+          <div className="sticky bottom-0 z-10 bg-white shadow-lg border-t border-gray-200 p-4">
+            <div className="max-w-3xl mx-auto w-full">
+              {/* 模型选择区域 */}
+              <div className="mb-3 flex justify-between items-center">
+                {models.length > 0 && (
+                  <div className="flex items-center text-sm">
+                    <span className="text-gray-500 mr-2">当前模型:</span>
+                    <select
+                      className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                      value={selectedModelId}
+                      onChange={(e) => setSelectedModelId(e.target.value)}
+                      disabled={isLoading}
+                    >
+                      {models.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex ml-2">
+                      <button
+                        className="px-2 py-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-600 rounded-md hover:bg-blue-50 flex items-center"
+                        onClick={goToSettings}
+                        title="配置模型"
+                      >
+                        配置
+                      </button>
+                      <button
+                        className="ml-2 px-2 py-1 text-xs text-green-600 hover:text-green-800 border border-green-600 rounded-md hover:bg-green-50 flex items-center"
+                        onClick={() => router.push('/settings')}
+                        title="新增模型"
+                      >
+                        <FaPlus className="mr-1" /> 新增
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* 输入框区域 */}
+              <div className="relative rounded-lg border border-gray-300 bg-white shadow-sm hover:border-blue-400 transition-colors">
                 <input
                   type="text"
-                  className="w-full px-4 py-3 pr-24 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 pr-24 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="输入消息..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -559,57 +615,20 @@ export default function AIChat() {
                   }}
                   disabled={isLoading || models.length === 0}
                 />
-                <div className="absolute right-0 top-0 h-full flex items-center">
+                <div className="absolute right-1 top-1/2 transform -translate-y-1/2">
                   <button
-                    className={`h-full px-4 text-sm ${isLoading || models.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-tr-md rounded-br-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`px-4 py-2 text-sm ${isLoading || models.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
                     onClick={sendMessage}
                     disabled={isLoading || models.length === 0}
                   >
                     {isLoading ? '发送中...' : '发送'}
                   </button>
                 </div>
-                
-                {/* 模型选择下拉框 */}
-                <div className="mt-3 flex justify-between items-center">
-                  {models.length > 0 && (
-                    <div className="flex items-center text-sm">
-                      <span className="text-gray-500 mr-2">当前模型:</span>
-                      <select
-                        className="px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={selectedModelId}
-                        onChange={(e) => setSelectedModelId(e.target.value)}
-                        disabled={isLoading}
-                      >
-                        {models.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex ml-2">
-                        <button
-                          className="px-2 py-1 text-sm text-blue-600 hover:text-blue-800 border border-blue-600 rounded-md hover:bg-blue-50 flex items-center"
-                          onClick={goToSettings}
-                          title="配置模型"
-                        >
-                          配置
-                        </button>
-                        <button
-                          className="ml-2 px-2 py-1 text-sm text-green-600 hover:text-green-800 border border-green-600 rounded-md hover:bg-green-50 flex items-center"
-                          onClick={() => router.push('/settings')}
-                          title="新增模型"
-                        >
-                          <FaPlus className="mr-1" /> 新增
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+  )
 }
+
