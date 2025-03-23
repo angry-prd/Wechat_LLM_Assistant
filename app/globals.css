@@ -15,100 +15,100 @@ body {
 
 /* 添加一些基础样式确保 Tailwind 生效 */
 .bg-blue-500 {
-  background-color: #3b82f6 !important;
+  background-color: #3b82f6;
 }
 
 .text-white {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .font-bold {
-  font-weight: 700 !important;
+  font-weight: 700;
 }
 
 .rounded-lg {
-  border-radius: 0.5rem !important;
+  border-radius: 0.5rem;
 }
 
 .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .p-4 {
-  padding: 1rem !important;
+  padding: 1rem;
 }
 
 .m-4 {
-  margin: 1rem !important;
+  margin: 1rem;
 }
 
 .flex {
-  display: flex !important;
+  display: flex;
 }
 
 .items-center {
-  align-items: center !important;
+  align-items: center;
 }
 
 .justify-center {
-  justify-content: center !important;
+  justify-content: center;
 }
 
 .text-center {
-  text-align: center !important;
+  text-align: center;
 }
 
 .text-lg {
-  font-size: 1.125rem !important;
-  line-height: 1.75rem !important;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
 }
 
 .text-xl {
-  font-size: 1.25rem !important;
-  line-height: 1.75rem !important;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
 }
 
 .text-2xl {
-  font-size: 1.5rem !important;
-  line-height: 2rem !important;
+  font-size: 1.5rem;
+  line-height: 2rem;
 }
 
 .text-3xl {
-  font-size: 1.875rem !important;
-  line-height: 2.25rem !important;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
 }
 
 .text-4xl {
-  font-size: 2.25rem !important;
-  line-height: 2.5rem !important;
+  font-size: 2.25rem;
+  line-height: 2.5rem;
 }
 
 .text-5xl {
-  font-size: 3rem !important;
-  line-height: 1 !important;
+  font-size: 3rem;
+  line-height: 1;
 }
 
 .text-6xl {
-  font-size: 3.75rem !important;
-  line-height: 1 !important;
+  font-size: 3.75rem;
+  line-height: 1;
 }
 
 .grid {
-  display: grid !important;
+  display: grid;
 }
 
 .grid-cols-1 {
-  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
 @media (min-width: 640px) {
   .sm\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
   .lg\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-} 
+}
