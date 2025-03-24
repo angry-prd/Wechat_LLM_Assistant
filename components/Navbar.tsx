@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot, FaUser, FaSignOutAlt } from 'react-icons/fa';
+import { useSession } from 'next-auth/react';
 
 // 内联样式定义
 const styles = {
@@ -121,6 +122,7 @@ const styles = {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -190,12 +192,17 @@ export default function Navbar() {
     router.push('/');
   };
 
+  // 根据登录状态动态生成导航项
   const navItems = [
     { name: '首页', href: '/', icon: <FaHome size={16} style={{ marginRight: '8px' }} /> },
     { name: 'AI助手', href: '/ai-chat', icon: <FaRobot size={16} style={{ marginRight: '8px' }} /> },
     { name: '推文管理', href: '/articles', icon: <FaNewspaper size={16} style={{ marginRight: '8px' }} /> },
-    { name: '系统配置', href: '/settings', icon: <FaCog size={16} style={{ marginRight: '8px' }} /> },
   ];
+  
+  // 只有登录用户才能看到系统配置选项
+  if (status === 'authenticated' || (isClient && username)) {
+    navItems.push({ name: '系统配置', href: '/settings', icon: <FaCog size={16} style={{ marginRight: '8px' }} /> });
+  }
 
   // 在服务器端渲染时，显示默认的桌面导航
   if (!isClient) {

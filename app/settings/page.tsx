@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUserId } from '@/lib/auth';
 import Toast from '@/components/Toast';
+import { useSession } from 'next-auth/react';
 
 interface ModelConfig {
   id: string;
@@ -17,6 +18,7 @@ interface ModelConfig {
 
 export default function Settings() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editingModel, setEditingModel] = useState<null | ModelConfig>(null);
@@ -65,8 +67,17 @@ export default function Settings() {
   };
   
   useEffect(() => {
-    fetchModels();
-  }, []);
+    // 检查用户是否已登录
+    if (status === 'unauthenticated') {
+      // 未登录用户重定向到登录页面
+      router.push('/login');
+      return;
+    }
+    
+    if (status !== 'loading') {
+      fetchModels();
+    }
+  }, [status, router]);
   
   // 打开新建模型表单
   const openNewModelForm = () => {
