@@ -5,6 +5,7 @@ import { FaSync } from 'react-icons/fa';
 import ChatHistoryList from '@/components/ChatHistoryList';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Spinner } from '@/components/Spinner';
 
 interface Message {
   id: string;
@@ -20,7 +21,8 @@ interface ChatHistory {
 }
 
 export default function AIChatPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const loading = status === 'loading';
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -33,10 +35,12 @@ export default function AIChatPage() {
   };
 
   useEffect(() => {
-    if (!session) {
+    if (status === 'unauthenticated') {
       router.push('/login');
       return;
     }
+    
+    if (status === 'authenticated') {
     
     // 加载聊天历史记录
     fetchChatHistories();
