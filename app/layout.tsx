@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,11 +19,13 @@ export default function RootLayout({
   return (
     <html lang="zh">
       <body className={inter.className}>
-        <Navbar />
-        <main className="min-h-screen bg-gray-50">
-          {children}
-        </main>
+        <SessionProvider>
+          <Navbar />
+          <main className="min-h-screen bg-gray-50">
+            {children}
+          </main>
+        </SessionProvider>
       </body>
     </html>
   );
-} 
+}
