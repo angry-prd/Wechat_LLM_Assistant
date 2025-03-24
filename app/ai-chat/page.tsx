@@ -5,7 +5,7 @@ import { FaSync } from 'react-icons/fa';
 import ChatHistoryList from '@/components/ChatHistoryList';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Spinner } from '@/components/Spinner';
+// 移除未使用的 Spinner 导入，因为在代码中没有使用到这个组件
 
 interface Message {
   id: string;
@@ -44,7 +44,8 @@ export default function AIChatPage() {
     
     // 加载聊天历史记录
     fetchChatHistories();
-  }, [session]);
+  }
+}, [session]);
 
   useEffect(() => {
     scrollToBottom();
