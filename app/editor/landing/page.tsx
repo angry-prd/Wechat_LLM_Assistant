@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FaPen, FaArrowLeft, FaCode, FaEye, FaImage, FaTable } from 'react-icons/fa';
+import { FaArrowLeft, FaCode, FaEye, FaImage, FaTable, FaListUl, FaQuoteLeft, FaHeading } from 'react-icons/fa';
+import Image from 'next/image';
 
 export default function MarkdownEditorLandingPage() {
   return (
@@ -18,7 +19,7 @@ export default function MarkdownEditorLandingPage() {
       {/* 标题区域 */}
       <div className="text-center mb-16">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-          <FaPen size={36} className="text-green-600" />
+          <FaCode size={36} className="text-green-600" />
         </div>
         <h1 className="text-4xl font-bold mb-4" style={{
           background: 'linear-gradient(to right, #10b981, #059669)',
@@ -149,13 +150,89 @@ export default function MarkdownEditorLandingPage() {
         </div>
       </div>
 
-      {/* 行动号召 */}
-      <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl p-8 text-center">
-        <h2 className="text-3xl font-bold mb-4">开始使用Markdown编辑器</h2>
-        <p className="text-xl mb-6">让您的公众号文章排版更加专业、美观</p>
-        <Link href="/editor" className="inline-block bg-white text-green-600 font-bold py-3 px-8 rounded-lg hover:bg-green-50 transition-colors">
-          立即体验
-        </Link>
+      {/* 示例展示 */}
+      <div className="bg-white p-8 rounded-xl shadow-md mb-16">
+        <h2 className="text-2xl font-bold text-center mb-8">Markdown效果展示</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3">Markdown源码</h3>
+            <pre className="font-mono text-sm p-4 bg-gray-800 text-white rounded overflow-x-auto">
+              <code>
+# 文章标题
+
+## 二级标题
+
+这是一段**粗体**和*斜体*混合的文本。
+
+{'>'} 这是一个引用块，可以用来突出重要内容。
+
+- 无序列表项1
+- 无序列表项2
+- 无序列表项3
+
+1. 有序列表项1
+2. 有序列表项2
+3. 有序列表项3
+
+![图片描述](图片URL)
+
+| 表头1 | 表头2 | 表头3 |
+| ----- | ----- | ----- |
+| 内容1 | 内容2 | 内容3 |
+| 内容4 | 内容5 | 内容6 |
+              </code>
+            </pre>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3">渲染效果</h3>
+            <div className="p-4 bg-white rounded border border-gray-200">
+              <h1 className="text-2xl font-bold mb-2">文章标题</h1>
+              <h2 className="text-xl font-semibold mb-2">二级标题</h2>
+              <p className="mb-3">这是一段<strong>粗体</strong>和<em>斜体</em>混合的文本。</p>
+              <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-3">
+                这是一个引用块，可以用来突出重要内容。
+              </blockquote>
+              <ul className="list-disc pl-5 mb-3">
+                <li>无序列表项1</li>
+                <li>无序列表项2</li>
+                <li>无序列表项3</li>
+              </ul>
+              <ol className="list-decimal pl-5 mb-3">
+                <li>有序列表项1</li>
+                <li>有序列表项2</li>
+                <li>有序列表项3</li>
+              </ol>
+              <div className="mb-3 text-center text-gray-500">[图片展示区域]</div>
+              <table className="w-full border-collapse mb-3">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2">表头1</th>
+                    <th className="border border-gray-300 p-2">表头2</th>
+                    <th className="border border-gray-300 p-2">表头3</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border border-gray-300 p-2">内容1</td>
+                    <td className="border border-gray-300 p-2">内容2</td>
+                    <td className="border border-gray-300 p-2">内容3</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">内容4</td>
+                    <td className="border border-gray-300 p-2">内容5</td>
+                    <td className="border border-gray-300 p-2">内容6</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 底部区域 */}
+      <div className="text-center text-gray-600">
+        <p>开始使用Markdown编辑器，让您的微信公众号文章更加专业</p>
+        <p className="mt-2">© 2023 微信AI助手 - 让创作更简单</p>
       </div>
     </div>
   );

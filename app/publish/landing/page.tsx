@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FaWeixin, FaArrowLeft, FaRocket, FaSync, FaChartLine, FaMobileAlt } from 'react-icons/fa';
+import { FaWeixin, FaArrowLeft, FaRocket, FaSync, FaChartLine, FaMobileAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
+import Image from 'next/image';
 
 export default function PublishLandingPage() {
   return (
@@ -163,13 +164,133 @@ export default function PublishLandingPage() {
         </div>
       </div>
 
-      {/* 行动号召 */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-8 text-center">
-        <h2 className="text-3xl font-bold mb-4">开始使用一键发布功能</h2>
-        <p className="text-xl mb-6">提升您的内容创作和发布效率，专注于创作优质内容</p>
-        <Link href="/publish" className="inline-block bg-white text-indigo-600 font-bold py-3 px-8 rounded-lg hover:bg-indigo-50 transition-colors">
-          立即体验
-        </Link>
+      {/* 发布流程展示 */}
+      <div className="bg-white p-8 rounded-xl shadow-md mb-16">
+        <h2 className="text-2xl font-bold text-center mb-8">一键发布流程展示</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 flex items-center">
+              <FaPaperPlane className="text-indigo-600 mr-2" />
+              传统发布流程
+            </h3>
+            <div className="p-4 bg-white rounded border border-gray-200">
+              <ol className="space-y-6">
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">1</span>
+                  <div>
+                    <p className="font-medium">在编辑器中创建文章</p>
+                    <p className="text-gray-600 text-sm mt-1">使用各种工具编辑排版文章内容</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">2</span>
+                  <div>
+                    <p className="font-medium">复制全部内容</p>
+                    <p className="text-gray-600 text-sm mt-1">需要手动全选并复制文章内容</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">3</span>
+                  <div>
+                    <p className="font-medium">登录微信公众号后台</p>
+                    <p className="text-gray-600 text-sm mt-1">打开浏览器，输入账号密码登录</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">4</span>
+                  <div>
+                    <p className="font-medium">新建图文消息</p>
+                    <p className="text-gray-600 text-sm mt-1">在后台创建新的图文消息</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">5</span>
+                  <div>
+                    <p className="font-medium">粘贴内容并调整格式</p>
+                    <p className="text-gray-600 text-sm mt-1">粘贴后通常需要重新调整格式</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">6</span>
+                  <div>
+                    <p className="font-medium">上传图片素材</p>
+                    <p className="text-gray-600 text-sm mt-1">需要重新上传所有图片</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-3 mt-1">7</span>
+                  <div>
+                    <p className="font-medium">预览检查并发布</p>
+                    <p className="text-gray-600 text-sm mt-1">反复预览检查格式问题</p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 flex items-center">
+              <FaRocket className="text-indigo-600 mr-2" />
+              一键发布流程
+            </h3>
+            <div className="p-4 bg-white rounded border border-gray-200">
+              <ol className="space-y-6">
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-3 mt-1 font-medium">1</span>
+                  <div>
+                    <p className="font-medium">在系统中创建文章</p>
+                    <p className="text-gray-600 text-sm mt-1">使用Markdown编辑器或AI助手创建内容</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-3 mt-1 font-medium">2</span>
+                  <div>
+                    <p className="font-medium">实时预览效果</p>
+                    <p className="text-gray-600 text-sm mt-1">所见即所得，实时查看微信样式</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-3 mt-1 font-medium">3</span>
+                  <div>
+                    <p className="font-medium">点击"发布到微信"按钮</p>
+                    <p className="text-gray-600 text-sm mt-1">一键完成所有发布流程</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-3 mt-1 font-medium">✓</span>
+                  <div>
+                    <p className="font-medium">完成！</p>
+                    <p className="text-gray-600 text-sm mt-1">系统自动处理格式、图片上传等所有步骤</p>
+                  </div>
+                </li>
+              </ol>
+              <div className="mt-8 p-4 bg-indigo-50 rounded-lg">
+                <h4 className="font-medium flex items-center text-indigo-700 mb-2">
+                  <FaClock className="mr-2" />
+                  节省时间对比
+                </h4>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">传统方式</p>
+                    <p className="font-medium">15-30分钟</p>
+                  </div>
+                  <div className="h-1 flex-grow mx-4 bg-gray-200 rounded-full">
+                    <div className="h-1 bg-indigo-600 rounded-full" style={{ width: '20%' }}></div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">一键发布</p>
+                    <p className="font-medium">1分钟</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 底部区域 */}
+      <div className="text-center text-gray-600">
+        <p>使用一键发布功能，让您的微信公众号运营更加高效</p>
+        <p className="mt-2">© 2023 微信AI助手 - 让创作更简单</p>
       </div>
     </div>
   );
