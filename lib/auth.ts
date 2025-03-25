@@ -26,10 +26,25 @@ export function getCurrentUserId() {
   return user?.id || 'default';
 }
 
+// 保存当前URL以便登录后重定向
+export function saveRedirectUrl(url: string) {
+  if (typeof window === 'undefined') return;
+  
+  localStorage.setItem('redirectUrl', url);
+}
+
+// 获取保存的重定向URL
+export function getRedirectUrl() {
+  if (typeof window === 'undefined') return '/';
+  
+  return localStorage.getItem('redirectUrl') || '/';
+}
+
 // 登出用户
 export function logoutUser() {
   if (typeof window === 'undefined') return;
   
   localStorage.removeItem('user');
-  // 可以在这里添加其他登出逻辑，如清除会话Cookie等
+  // 清除会话Cookie
+  document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 }

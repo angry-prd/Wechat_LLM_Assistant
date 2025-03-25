@@ -148,14 +148,14 @@ export default function Home() {
       title: 'Markdown编辑',
       description: '使用Markdown编辑器，轻松美化文章排版',
       icon: <FaPen size={24} color="#10b981" />,
-      link: '/editor'
+      link: '/editor/landing'
     },
     {
       id: 3,
       title: '一键发布',
       description: '直接发布到微信公众号，省去繁琐的复制粘贴',
       icon: <FaWeixin size={24} color="#4f46e5" />,
-      link: '/publish'
+      link: '/publish/landing'
     }
   ];
 

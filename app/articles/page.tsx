@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { isLoggedIn, saveRedirectUrl } from '@/lib/auth';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 
 // 文章类型定义
@@ -172,10 +174,20 @@ const styles = {
 };
 
 export default function ArticlesPage() {
+  const router = useRouter();
   const [articles, setArticles] = useState<DisplayArticle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState('default'); // 默认用户ID
+  
+  // 检查用户是否已登录
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      // 保存当前URL并重定向到登录页面
+      saveRedirectUrl('/articles');
+      router.push('/login');
+    }
+  }, [router]);
   
   // 获取文章列表
   useEffect(() => {

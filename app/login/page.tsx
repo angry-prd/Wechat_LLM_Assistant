@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Toast from '@/components/Toast';
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
   const [formData, setFormData] = useState({
@@ -14,6 +15,22 @@ export default function Login() {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState('/');
+  
+  // 获取重定向URL
+  useEffect(() => {
+    const redirect = searchParams.get('redirect');
+    if (redirect) {
+      setRedirectUrl(decodeURIComponent(redirect));
+    } else {
+      // 尝试从localStorage获取之前保存的URL
+      const savedRedirectUrl = localStorage.getItem('redirectUrl');
+      if (savedRedirectUrl) {
+        setRedirectUrl(savedRedirectUrl);
+        localStorage.removeItem('redirectUrl'); // 使用后清除
+      }
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,9 +67,9 @@ export default function Login() {
           type: 'success'
         });
         
-        // 登录成功后跳转到首页
+        // 登录成功后跳转到来源页面
         setTimeout(() => {
-          router.push('/');
+          router.push(redirectUrl);
         }, 1500);
       } else {
         setToast({

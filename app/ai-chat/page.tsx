@@ -5,6 +5,7 @@ import { FaSync } from 'react-icons/fa';
 import ChatHistoryList from '@/components/ChatHistoryList';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { saveRedirectUrl } from '@/lib/auth';
 // 移除未使用的 Spinner 导入，因为在代码中没有使用到这个组件
 
 interface Message {
@@ -36,6 +37,8 @@ export default function AIChatPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
+      // 保存当前URL并重定向到登录页面
+      saveRedirectUrl('/ai-chat');
       router.push('/login');
       return;
     }

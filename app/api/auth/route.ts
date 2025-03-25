@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 使用共享数据存储中的用户数据
-import { users } from './shared-data';
+// 导入用户服务
+import { findUserByPhone, createUser } from '@/lib/user-service';
 
 // 注册新用户
 export async function POST(request: NextRequest) {
@@ -15,28 +15,27 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // 检查用户名是否已存在
-    if (users[username]) {
+    // 检查手机号是否已存在
+    const existingUser = await findUserByPhone(phone);
+    if (existingUser) {
       return NextResponse.json(
-        { error: '用户名已存在' },
+        { error: '该手机号已被注册' },
         { status: 400 }
       );
     }
     
-    // 创建新用户（实际应用中应该对密码进行哈希处理）
-    const newUser = {
+    // 创建新用户并存储到数据库
+    const newUser = await createUser({
       username,
-      password, // 注意：实际应用中应该存储哈希后的密码
-      phone,
-      createdAt: new Date().toISOString(),
-    };
-    
-    users[username] = newUser;
+      password,
+      phone
+    });
     
     return NextResponse.json({
       success: true,
       message: '注册成功',
       user: {
+        id: newUser.id,
         username: newUser.username,
         phone: newUser.phone,
         createdAt: newUser.createdAt

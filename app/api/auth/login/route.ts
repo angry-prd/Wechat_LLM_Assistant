@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 导入用户数据（在实际应用中应该从数据库获取）
-// 注意：这里简化处理，实际应用中应该使用数据库
-// 使用与注册API相同的用户数据存储
-// 从共享数据文件导入用户数据
-import { users } from '@/app/api/auth/shared-data';
+// 导入用户服务
+import { findUserByPhone, validateUserPassword, updateUserSessionToken } from '@/lib/user-service';
+// 导入共享数据存储
+import { users } from '../shared-data';
 
 // 登录接口
 export async function POST(request: NextRequest) {
@@ -19,13 +18,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 检查用户是否存在（通过手机号查找）
-    let user = null;
-    for (const key in users) {
-      if (users[key].phone === phone) {
-        user = users[key];
-        break;
-      }
-    }
+    const user = await findUserByPhone(phone);
     
     if (!user) {
       return NextResponse.json(
@@ -34,26 +27,28 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // 验证密码（实际应用中应该比较哈希值）
-    if (user.password !== password) {
+    // 验证密码（使用bcrypt比较哈希值）
+    const isPasswordValid = await validateUserPassword(user, password);
+    if (!isPasswordValid) {
       return NextResponse.json(
         { error: '手机号或密码错误' },
         { status: 401 }
       );
     }
     
-    // 生成简单的会话令牌（实际应用中应该使用JWT或其他安全机制）
+    // 生成会话令牌
     const sessionToken = Math.random().toString(36).substring(2, 15) + 
                          Math.random().toString(36).substring(2, 15);
     
-    // 在实际应用中，应该将令牌存储在数据库中并设置过期时间
-    user.sessionToken = sessionToken;
+    // 更新用户会话令牌（同时更新内存和数据库）
+    await updateUserSessionToken(user, sessionToken);
     
-    // 设置Cookie（实际应用中应该设置更多安全选项）
+    // 设置响应
     const response = NextResponse.json({
       success: true,
       message: '登录成功',
       user: {
+        id: user.id,
         username: user.username,
         phone: user.phone
       }

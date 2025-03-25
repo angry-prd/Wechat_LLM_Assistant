@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql" // 如果家里电脑运行的是MySQL，请将此处改为"mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -48,6 +48,7 @@ model ChatModel {
 // 用户配置
 model UserConfig {
   id                    String   @id @default(uuid())
+  sessionToken          String?  // 用户会话令牌
   wechatAppId           String?
   wechatAppSecret       String?
   wechatToken           String?
