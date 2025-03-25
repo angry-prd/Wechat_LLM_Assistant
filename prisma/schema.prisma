@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // 如果家里电脑运行的是MySQL，请将此处改为"mysql"
+  provider = "mysql" // 已修改为mysql以兼容MariaDB数据库
   url      = env("DATABASE_URL")
 }
 
