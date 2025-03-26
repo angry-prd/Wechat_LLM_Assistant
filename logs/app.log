@@ -1069,3 +1069,36 @@ The column `id` does not exist in the current database.
     at async handleRequest (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\router-server.js:342:24)
     at async requestHandlerImpl (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\router-server.js:366:13)
     at async Server.requestListener (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\start-server.js:140:13)
+[2025-03-26T08:28:40.465Z] INFO: 开始处理注册请求
+[2025-03-26T08:28:40.974Z] ERROR: 注册失败
+Error: 数据库创建用户失败: 
+Invalid `prisma.user.create()` invocation:
+
+
+The column `id` does not exist in the current database.
+Stack: Error: 数据库创建用户失败: 
+Invalid `prisma.user.create()` invocation:
+
+
+The column `id` does not exist in the current database.
+    at eval (webpack-internal:///(rsc)/./lib/user-service.ts:103:19)
+    at async createUser (webpack-internal:///(rsc)/./lib/user-service.ts:95:25)
+    at async POST (webpack-internal:///(rsc)/./app/api/auth/route.ts:34:25)
+    at async C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:63809
+    at async eU.execute (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:53964)
+    at async eU.handle (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:65062)
+    at async doRender (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:1333:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:1555:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:1463:28)
+    at async DevServer.renderPageComponent (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:1856:24)
+    at async DevServer.renderToResponseImpl (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:1894:32)
+    at async DevServer.pipeImpl (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:911:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\next-server.js:271:17)
+    at async DevServer.handleRequestImpl (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\base-server.js:807:17)
+    at async C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\dev\next-dev-server.js:331:20
+    at async Span.traceAsyncFn (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\trace\trace.js:151:20)
+    at async DevServer.handleRequest (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\dev\next-dev-server.js:328:24)
+    at async invokeRender (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\router-server.js:163:21)
+    at async handleRequest (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\router-server.js:342:24)
+    at async requestHandlerImpl (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\router-server.js:366:13)
+    at async Server.requestListener (C:\Users\Demo.Bo\Tare Projects\Wechat_LLM_Assistant\node_modules\next\dist\server\lib\start-server.js:140:13)
