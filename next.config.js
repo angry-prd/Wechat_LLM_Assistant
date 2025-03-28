@@ -12,14 +12,12 @@ const nextConfig = {
     
     return config;
   },
+
 }
 
 module.exports = {
   ...nextConfig,
   // 设置开发服务器端口为3000
-  experimental: {
-    serverActions: true
-  },
   env: {
     PORT: "3000"
   }

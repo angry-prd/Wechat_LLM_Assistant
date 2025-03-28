@@ -26,11 +26,10 @@ export function middleware(request: NextRequest) {
   
   if (isProtectedPath) {
     // 检查是否有会话令牌
-    const sessionToken = request.cookies.get('next-auth.session-token')?.value;
-    const userToken = request.cookies.get('user_token')?.value;
+    const sessionToken = request.cookies.get('session_token')?.value;
     
-    // 如果没有会话令牌或用户令牌，重定向到登录页面
-    if (!sessionToken || !userToken) {
+    // 如果没有会话令牌，重定向到登录页面
+    if (!sessionToken) {
       const url = new URL('/login', request.url);
       url.searchParams.set('redirect', path);
       return NextResponse.redirect(url);

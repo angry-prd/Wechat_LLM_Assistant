@@ -66,17 +66,20 @@ export default function Settings() {
     }
   };
   
-  useEffect(() => {
-    // 检查用户是否已登录
+  // 优化权限验证和会话管理逻辑，提取为独立函数
+  const handleSessionStatus = (status: string, router: any) => {
     if (status === 'unauthenticated') {
       // 未登录用户重定向到登录页面
       router.push('/login');
       return;
     }
-    
     if (status !== 'loading') {
       fetchModels();
     }
+  };
+  
+  useEffect(() => {
+    handleSessionStatus(status, router);
   }, [status, router]);
   
   // 打开新建模型表单

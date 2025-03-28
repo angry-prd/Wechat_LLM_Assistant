@@ -35,20 +35,32 @@ export default function AIChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
+  // 优化权限验证和会话管理逻辑，提取为独立函数
+  const handleSessionStatus = (status: string, router: any) => {
     if (status === 'unauthenticated') {
       // 保存当前URL并重定向到登录页面
       saveRedirectUrl('/ai-chat');
       router.push('/login');
       return;
     }
-    
     if (status === 'authenticated') {
-    
-    // 加载聊天历史记录
-    fetchChatHistories();
-  }
-}, [session]);
+      // 检查用户是否真正登录，防止异常情况
+      // 假设使用 session 来判断用户是否登录
+      const isUserLoggedIn = session !== null;
+      if (isUserLoggedIn) {
+        // 加载聊天历史记录
+        fetchChatHistories();
+      } else {
+        // 若未登录，重新跳转到登录页面
+        saveRedirectUrl('/ai-chat');
+        router.push('/login');
+      }
+    }
+  };
+  
+  useEffect(() => {
+    handleSessionStatus(status, router);
+  }, [status, router]);
 
   useEffect(() => {
     scrollToBottom();
