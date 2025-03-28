@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-// 配置文件路径
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'chat-models.json');
+import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 // 模型配置接口
 interface ModelConfig {
@@ -29,21 +27,104 @@ interface ChatRequest {
   max_tokens?: number;
 }
 
-// 获取模型配置
-function getModelConfig(modelId: string): ModelConfig | null {
-  if (!fs.existsSync(CONFIG_FILE)) {
+// 获取模型配置 - 从数据库获取
+async function getModelConfig(modelId: string): Promise<ModelConfig | null> {
+  try {
+    // 获取当前用户
+    const session = await getServerSession(authOptions);
+    const userEmail = session?.user?.email;
+    
+    if (!userEmail) {
+      console.error('未登录或找不到用户');
+      return null;
+    }
+    
+    // 查找用户
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail }
+    });
+    
+    if (!user) {
+      // 尝试通过用户名查找
+      const userByUsername = await prisma.user.findUnique({
+        where: { username: userEmail }
+      });
+      
+      if (!userByUsername) {
+        console.error('找不到用户记录');
+        return null;
+      }
+      
+      // 使用找到的用户ID
+      let modelConfig;
+      if (modelId) {
+        modelConfig = await prisma.chatModel.findFirst({
+          where: {
+            id: modelId,
+            userId: userByUsername.id
+          }
+        });
+      } else {
+        // 如果未指定modelId，获取默认模型
+        modelConfig = await prisma.chatModel.findFirst({
+          where: {
+            userId: userByUsername.id,
+            isDefault: true
+          }
+        });
+        
+        // 如果没有默认模型，获取第一个模型
+        if (!modelConfig) {
+          modelConfig = await prisma.chatModel.findFirst({
+            where: {
+              userId: userByUsername.id
+            },
+            orderBy: {
+              createdAt: 'asc'
+            }
+          });
+        }
+      }
+      
+      return modelConfig;
+    }
+    
+    // 根据ID获取模型配置
+    let modelConfig;
+    if (modelId) {
+      modelConfig = await prisma.chatModel.findFirst({
+        where: {
+          id: modelId,
+          userId: user.id
+        }
+      });
+    } else {
+      // 如果未指定modelId，获取默认模型
+      modelConfig = await prisma.chatModel.findFirst({
+        where: {
+          userId: user.id,
+          isDefault: true
+        }
+      });
+      
+      // 如果没有默认模型，获取第一个模型
+      if (!modelConfig) {
+        modelConfig = await prisma.chatModel.findFirst({
+          where: {
+            userId: user.id
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
+        });
+      }
+    }
+    
+    return modelConfig;
+  } catch (error) {
+    console.error('获取模型配置失败:', error);
     return null;
   }
-  
-  const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
-  const configs: ModelConfig[] = JSON.parse(data);
-  
-  if (modelId) {
-    return configs.find(config => config.id === modelId) || null;
-  }
-  
-  // 如果未指定modelId，返回默认配置
-  return configs.find(config => config.isDefault) || (configs.length > 0 ? configs[0] : null);
 }
 
 // POST 处理聊天请求
@@ -60,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 获取模型配置
-    const modelConfig = getModelConfig(modelId);
+    const modelConfig = await getModelConfig(modelId);
     if (!modelConfig) {
       return NextResponse.json(
         { success: false, message: '模型配置不存在，请先配置模型' },
@@ -89,6 +170,9 @@ export async function POST(request: NextRequest) {
       temperature,
       max_tokens
     };
+    
+    console.log('发送请求到AI服务:', apiUrl);
+    console.log('使用模型:', modelConfig.name);
     
     // 发送请求到模型API
     const response = await fetch(apiUrl, {
@@ -132,19 +216,40 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const getDefault = url.searchParams.get('default') === 'true';
     
-    if (!fs.existsSync(CONFIG_FILE)) {
-      if (getDefault) {
-        return NextResponse.json(
-          { success: false, message: '没有配置默认模型' },
-          { status: 404 }
-        );
-      }
-      return NextResponse.json({ success: true, data: [] });
+    // 获取当前用户
+    const session = await getServerSession();
+    const userEmail = session?.user?.email;
+    
+    if (!userEmail) {
+      return NextResponse.json(
+        { success: false, message: '未登录' },
+        { status: 401 }
+      );
     }
     
-    const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
-    const configs: ModelConfig[] = JSON.parse(data);
+    // 查找用户
+    const user = await prisma.user.findUnique({
+      where: { email: userEmail }
+    });
     
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: '找不到用户' },
+        { status: 404 }
+      );
+    }
+    
+    // 获取用户的模型配置
+    const configs = await prisma.chatModel.findMany({
+      where: {
+        userId: user.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+    
+    // 如果要获取默认模型
     if (getDefault) {
       const defaultConfig = configs.find(config => config.isDefault) || (configs.length > 0 ? configs[0] : null);
       if (!defaultConfig) {
@@ -166,6 +271,7 @@ export async function GET(request: NextRequest) {
       ...rest,
       hasApiKey: !!apiKey
     }));
+    
     return NextResponse.json({ success: true, data: publicConfigs });
   } catch (error) {
     console.error('获取模型配置失败:', error);

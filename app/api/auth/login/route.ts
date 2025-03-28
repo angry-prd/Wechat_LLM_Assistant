@@ -51,7 +51,9 @@ export async function POST(request: NextRequest) {
         id: user.id,
         username: user.username,
         phone: user.phone
-      }
+      },
+      sessionToken: sessionToken,
+      triggerStorageEvent: true
     });
     
     // 设置会话Cookie

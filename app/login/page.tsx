@@ -61,7 +61,7 @@ export default function Login() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ phone: formData.phone, password: formData.password })
       });
 
       const result = await response.json();
@@ -70,27 +70,71 @@ export default function Login() {
         // 保存用户信息和令牌到本地存储
         if (result.user) {
           localStorage.setItem('user', JSON.stringify(result.user));
+          
+          // 确保session_token也被保存到cookie中
+          // 这里从response.headers中获取Set-Cookie并手动设置cookie
+          if(result.sessionToken) {
+            document.cookie = `session_token=${result.sessionToken}; path=/; max-age=2592000`; // 30天有效期
+            // 同时保存到本地存储以便JavaScript访问
+            localStorage.setItem('session_token', result.sessionToken);
+          }
+          
           // 设置用户令牌cookie
           document.cookie = `user_token=${result.user.id}; path=/; max-age=2592000`; // 30天有效期
+          
+          // 触发storage事件，通知其他组件（如导航栏）用户已登录
+          // 这是一个技巧，因为同一页面的localStorage变化不会触发storage事件
+          // 我们通过修改一个临时键然后立即删除来触发事件
+          localStorage.setItem('login_status_change', Date.now().toString());
+          
+          // 创建并分发自定义事件，确保导航栏能立即感知到登录状态变化
+          const loginEvent = new Event('login-status-changed');
+          window.dispatchEvent(loginEvent);
+          
+          console.log('登录成功：', result.user.username);
+          
+          // 短暂延迟以确保状态更新
+          setTimeout(() => {
+            localStorage.removeItem('login_status_change');
+          }, 100);
         }
         
-        // 优先使用originalPath，其次是redirectUrl
-        let targetPath = originalPath;
-        if (!targetPath || targetPath === '/login') {
-          targetPath = redirectUrl;
-        }
+        // 显示成功提示
+        setToast({
+          visible: true,
+          message: '登录成功！',
+          type: 'success'
+        });
         
-        // 确保跳转到有效路径并立即执行
-        if (targetPath) {
-          window.location.href = targetPath;
-        } else {
-          // 默认跳转到首页
-          window.location.href = '/';
-        }
-        
-        // 清除相关状态
-        setIsLoading(false);
-        localStorage.removeItem('originalPath');
+        // 短暂延迟后再跳转，确保登录状态更新
+        setTimeout(() => {
+          // 检查是否是从首页"开始使用"按钮跳转过来的
+          const fromHomePage = redirectUrl === '/ai-chat';
+          
+          // 如果是从首页的"开始使用"按钮来的，直接跳转到AI聊天页面
+          if (fromHomePage) {
+            router.push('/ai-chat');
+          } else {
+            // 优先使用originalPath，其次是redirectUrl
+            let targetPath = originalPath;
+            if (!targetPath || targetPath === '/login') {
+              targetPath = redirectUrl;
+            }
+            
+            // 确保跳转到有效路径
+            if (targetPath) {
+              // 使用router.push代替直接设置window.location以保持React状态
+              router.push(targetPath);
+            } else {
+              // 默认跳转到首页
+              router.push('/');
+            }
+          }
+          
+          // 清除相关状态
+          setIsLoading(false);
+          localStorage.removeItem('originalPath');
+        }, 300); // 延迟300ms确保状态更新
       }
       if (!response.ok) {
         setToast({

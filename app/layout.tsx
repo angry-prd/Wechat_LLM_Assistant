@@ -1,31 +1,31 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+import './globals.css'
+import type { Metadata } from 'next'
 import Navbar from "@/components/Navbar";
-import { Providers } from "./providers";
-
-const inter = Inter({ subsets: ["latin"] });
+import Providers from './providers';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: "微信AI助手",
-  description: "基于AI的微信公众号文章生成和发布系统",
-};
+  title: '微信公众号AI助手',
+  description: '基于AI的微信公众号推文生成和发布工具',
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <html lang="zh">
-      <body className={inter.className}>
+    <html lang="zh-CN" className="scroll-smooth">
+      <body className="overflow-x-hidden">
         <Providers>
           <Navbar />
-          <main className="min-h-screen bg-gray-50">
-            {children}
+          <main className="min-h-screen">
+            <Suspense fallback={<div className="pt-16 page-container">Loading...</div>}>
+              {children}
+            </Suspense>
           </main>
         </Providers>
       </body>
     </html>
-  );
+  )
 }

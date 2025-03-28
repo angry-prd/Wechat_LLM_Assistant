@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUserId } from '@/lib/auth';
 import Toast from '@/components/Toast';
-import { useSession } from 'next-auth/react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface ModelConfig {
   id: string;
@@ -18,22 +18,29 @@ interface ModelConfig {
 
 export default function Settings() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const [isSessionLoaded, setIsSessionLoaded] = useState(false);
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    modelId: ''
+  });
+  
+  // 添加编辑模型和模态框状态
   const [editingModel, setEditingModel] = useState<null | ModelConfig>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
-  const [userId, setUserId] = useState(''); // 用户ID
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
+  const [userId, setUserId] = useState('');
   
   // 表单状态
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     apiKey: '',
-    endpoint: '',
-    model: '',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-3.5-turbo',
     isDefault: false
   });
   
@@ -60,27 +67,18 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('获取模型错误:', error);
-      alert('获取模型配置失败，请检查网络连接');
     } finally {
       setIsLoading(false);
     }
   };
   
-  // 优化权限验证和会话管理逻辑，提取为独立函数
-  const handleSessionStatus = (status: string, router: any) => {
-    if (status === 'unauthenticated') {
-      // 未登录用户重定向到登录页面
-      router.push('/login');
-      return;
-    }
-    if (status !== 'loading') {
+  useEffect(() => {
+    // 只在客户端渲染时加载模型配置
+    if (typeof window !== 'undefined') {
+      setIsSessionLoaded(true);
       fetchModels();
     }
-  };
-  
-  useEffect(() => {
-    handleSessionStatus(status, router);
-  }, [status, router]);
+  }, []);
   
   // 打开新建模型表单
   const openNewModelForm = () => {
@@ -135,6 +133,12 @@ export default function Settings() {
         userId: userId
       };
       
+      console.log('正在保存模型配置:', {
+        method,
+        ...dataWithUserId,
+        apiKey: dataWithUserId.apiKey ? '******' : '(未提供)'
+      });
+      
       const response = await fetch(url, {
         method,
         headers: {
@@ -144,6 +148,7 @@ export default function Settings() {
       });
       
       const result = await response.json();
+      console.log('模型保存响应:', result);
       
       if (result.success) {
         setIsModalOpen(false);
@@ -162,7 +167,11 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('保存模型配置错误:', error);
-      alert('保存模型配置失败，请稍后再试');
+      setToast({
+        visible: true,
+        message: '保存模型配置失败，请稍后再试',
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -170,14 +179,21 @@ export default function Settings() {
   
   // 删除模型配置
   const deleteModel = async (id: string) => {
-    if (!window.confirm('确定要删除此模型配置吗？')) {
-      return;
-    }
-    
+    // 显示确认对话框
+    setConfirmDialog({
+      isOpen: true,
+      title: '删除确认',
+      message: '确定要删除此模型配置吗？',
+      modelId: id
+    });
+  };
+  
+  // 确认删除处理函数
+  const handleConfirmDelete = async () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`/api/chat-models?id=${id}`, {
+      const response = await fetch(`/api/chat-models?id=${confirmDialog.modelId}`, {
         method: 'DELETE'
       });
       
@@ -185,112 +201,122 @@ export default function Settings() {
       
       if (result.success) {
         fetchModels(); // 重新加载模型列表
+        setToast({
+          visible: true,
+          message: '模型已成功删除',
+          type: 'success'
+        });
       } else {
-        alert(`删除失败: ${result.message}`);
+        setToast({
+          visible: true,
+          message: `删除失败: ${result.message}`,
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error('删除模型配置错误:', error);
-      alert('删除模型配置失败，请稍后再试');
+      setToast({
+        visible: true,
+        message: '删除模型配置失败，请稍后再试',
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
+      // 关闭确认对话框
+      setConfirmDialog({...confirmDialog, isOpen: false});
     }
   };
-  
-  // 返回聊天页面
-  const goToChat = () => {
-    router.push('/ai-chat');
-  };
-  
-  // 防止页面闪现的加载状态
-  const [pageReady, setPageReady] = useState(false);
-  
-  useEffect(() => {
-    // 当模型数据加载完成后，标记页面准备就绪
-    if (!isLoading) {
-      setPageReady(true);
-    }
-  }, [isLoading]);
   
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <Toast
+    <div className="min-h-screen bg-gray-50 py-6">
+      <Toast 
         visible={toast.visible}
         message={toast.message}
-        type={toast.type as 'error' | 'success' | 'info'}
+        type={toast.type as 'success' | 'error' | 'info'}
         onClose={() => setToast({ ...toast, visible: false })}
       />
       
-      <div className="flex flex-col overflow-hidden">
-        <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">系统配置</h1>
-          </div>
-          
-          {/* 配置类型选项卡 */}
-          <div className="flex border-b border-gray-200 mb-6">
-            <div className="mr-6">
-              <button
-                className="py-2 px-1 border-b-2 border-blue-500 font-medium text-blue-600"
-              >
-                AI模型配置
-              </button>
-            </div>
-            <div>
-              <Link href="/settings/wechat">
-                <button
-                  className="py-2 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                >
-                  微信公众号配置
-                </button>
-              </Link>
-            </div>
-          </div>
-          
-          {/* 模型列表 */}
-          <div className="mb-6">
-            <div className="flex space-x-4 mb-4">
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onClick={openNewModelForm}
-              >
-                添加模型
-              </button>
+      <ConfirmDialog 
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDialog({...confirmDialog, isOpen: false})}
+      />
+      
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">系统配置</h1>
             </div>
             
-            {models.length === 0 ? (
-              <div className="text-center py-8 bg-white rounded-lg shadow">
-                <p className="text-gray-500">暂无模型配置，请点击添加模型按钮创建</p>
+            {/* 配置类型选项卡 */}
+            <div className="flex border-b border-gray-200 mb-6">
+              <div className="mr-6">
+                <button
+                  className="py-2 px-1 border-b-2 border-blue-500 font-medium text-blue-600"
+                >
+                  AI模型配置
+                </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {models.map((model) => (
-                  <div key={model.id} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-medium">{model.name}</h3>
-                      {model.isDefault && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">默认</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">{model.model}</p>
-                    <p className="text-sm text-gray-500 mt-1 truncate">{model.endpoint}</p>
-                    <div className="mt-4 flex space-x-2">
-                      <button
-                        onClick={() => openEditModelForm(model)}
-                        className="text-sm px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => deleteModel(model.id)}
-                        className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <Link href="/settings/wechat">
+                  <button
+                    className="py-2 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  >
+                    微信公众号配置
+                  </button>
+                </Link>
               </div>
-            )}
+            </div>
+            
+            {/* 模型列表 */}
+            <div className="mb-6">
+              <div className="flex space-x-4 mb-4">
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={openNewModelForm}
+                >
+                  添加模型
+                </button>
+              </div>
+              
+              {models.length === 0 ? (
+                <div className="text-center py-8 bg-white rounded-lg shadow">
+                  <p className="text-gray-500">暂无模型配置，请点击添加模型按钮创建</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {models.map((model) => (
+                    <div key={model.id} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-lg font-medium">{model.name}</h3>
+                        {model.isDefault && (
+                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">默认</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{model.model}</p>
+                      <p className="text-sm text-gray-500 mt-1 truncate">{model.endpoint}</p>
+                      <div className="mt-4 flex space-x-2">
+                        <button
+                          onClick={() => openEditModelForm(model)}
+                          className="text-sm px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          onClick={() => deleteModel(model.id)}
+                          className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -342,7 +368,7 @@ export default function Settings() {
               </div>
               
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">模型名称</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">模型标识符</label>
                 <input
                   type="text"
                   name="model"

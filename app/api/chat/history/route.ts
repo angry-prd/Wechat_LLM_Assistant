@@ -86,3 +86,135 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// PUT 更新已有的聊天历史记录
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { success: false, message: '未登录' },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: '用户不存在' },
+        { status: 404 }
+      );
+    }
+
+    const { id, title, messages } = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: '缺少聊天历史ID' },
+        { status: 400 }
+      );
+    }
+
+    // 验证聊天历史属于当前用户
+    const existingHistory = await prisma.chatHistory.findFirst({
+      where: {
+        id,
+        userId: user.id
+      }
+    });
+
+    if (!existingHistory) {
+      return NextResponse.json(
+        { success: false, message: '聊天历史不存在或无权限' },
+        { status: 404 }
+      );
+    }
+
+    const updatedHistory = await prisma.chatHistory.update({
+      where: { id },
+      data: {
+        ...(title && { title }),
+        ...(messages && { messages }),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      chatHistory: updatedHistory,
+    });
+  } catch (error) {
+    console.error('Error updating chat history:', error);
+    return NextResponse.json(
+      { success: false, message: '更新聊天历史记录失败' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE 删除聊天历史记录
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { success: false, message: '未登录' },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: '用户不存在' },
+        { status: 404 }
+      );
+    }
+
+    // 从URL获取历史记录ID
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: '缺少聊天历史ID' },
+        { status: 400 }
+      );
+    }
+
+    // 验证聊天历史属于当前用户
+    const existingHistory = await prisma.chatHistory.findFirst({
+      where: {
+        id,
+        userId: user.id
+      }
+    });
+
+    if (!existingHistory) {
+      return NextResponse.json(
+        { success: false, message: '聊天历史不存在或无权限' },
+        { status: 404 }
+      );
+    }
+
+    await prisma.chatHistory.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: '聊天历史已删除'
+    });
+  } catch (error) {
+    console.error('Error deleting chat history:', error);
+    return NextResponse.json(
+      { success: false, message: '删除聊天历史记录失败' },
+      { status: 500 }
+    );
+  }
+}
