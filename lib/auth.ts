@@ -45,6 +45,8 @@ export function logoutUser() {
   if (typeof window === 'undefined') return;
   
   localStorage.removeItem('user');
-  // 清除会话Cookie
+  // 清除所有相关Cookie
   document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  document.cookie = 'user_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  document.cookie = 'next-auth.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 }

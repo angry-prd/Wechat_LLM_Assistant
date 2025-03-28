@@ -16,6 +16,7 @@ export default function Login() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState('/');
+  const [originalPath, setOriginalPath] = useState('');
   
   // 获取重定向URL
   useEffect(() => {
@@ -28,7 +29,17 @@ export default function Login() {
       if (savedRedirectUrl) {
         setRedirectUrl(savedRedirectUrl);
         localStorage.removeItem('redirectUrl'); // 使用后清除
+      } else {
+        // 默认跳转首页
+        setRedirectUrl('/');
       }
+    }
+    
+    // 保存当前路径作为原始路径
+    const path = window.location.pathname;
+    if (path !== '/login') {
+      setOriginalPath(path);
+      localStorage.setItem('originalPath', path);
     }
   }, [searchParams]);
 
@@ -56,27 +67,38 @@ export default function Login() {
       const result = await response.json();
 
       if (response.ok) {
-        // 保存用户信息到本地存储
+        // 保存用户信息和令牌到本地存储
         if (result.user) {
           localStorage.setItem('user', JSON.stringify(result.user));
+          // 设置用户令牌cookie
+          document.cookie = `user_token=${result.user.id}; path=/; max-age=2592000`; // 30天有效期
         }
         
-        setToast({
-          visible: true,
-          message: '登录成功，正在跳转...',
-          type: 'success'
-        });
+        // 优先使用originalPath，其次是redirectUrl
+        let targetPath = originalPath;
+        if (!targetPath || targetPath === '/login') {
+          targetPath = redirectUrl;
+        }
         
-        // 登录成功后跳转到来源页面
-        setTimeout(() => {
-          router.push(redirectUrl);
-        }, 1500);
-      } else {
+        // 确保跳转到有效路径并立即执行
+        if (targetPath) {
+          window.location.href = targetPath;
+        } else {
+          // 默认跳转到首页
+          window.location.href = '/';
+        }
+        
+        // 清除相关状态
+        setIsLoading(false);
+        localStorage.removeItem('originalPath');
+      }
+      if (!response.ok) {
         setToast({
           visible: true,
           message: result.error || '登录失败，请重试',
           type: 'error'
         });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('登录请求失败:', error);
@@ -85,7 +107,6 @@ export default function Login() {
         message: '登录请求失败，请检查网络连接',
         type: 'error'
       });
-    } finally {
       setIsLoading(false);
     }
   };

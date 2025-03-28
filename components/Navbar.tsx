@@ -23,6 +23,7 @@ const styles = {
   flexBetween: {
     display: 'flex',
     justifyContent: 'space-between',
+    alignItems: 'center',
     height: '64px',
   },
   flex: {
@@ -129,6 +130,24 @@ export default function Navbar() {
   const [user, setUser] = useState<{username: string; phone: string} | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // 获取用户信息
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedUsername = localStorage.getItem('username');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setUsername(parsedUser.username);
+      } catch (e) {
+        console.error('解析用户数据失败', e);
+        localStorage.removeItem('user');
+      }
+    } else if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
   
   // 检查当前路径是否匹配
   const isActive = (path: string) => {
@@ -139,14 +158,6 @@ export default function Navbar() {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-  
-  // 获取用户信息
-  useEffect(() => {
-    const storedUsername = localStorage.getItem('username');
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
-  }, []);
 
   useEffect(() => {
     // 标记客户端渲染已完成
@@ -268,109 +279,107 @@ export default function Navbar() {
                   {item.name}
                 </Link>
               ))}
-              
-              {/* 用户信息和退出按钮 */}
-              {username ? (
-                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '16px', position: 'relative' }}>
-                  <div 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      padding: '4px 12px', 
-                      backgroundColor: '#f3f4f6', 
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                  >
-                    <FaUser size={14} style={{ color: '#4b5563', marginRight: '8px' }} />
-                    <span style={{ fontSize: '0.875rem', fontWeight: 'medium', color: '#374151' }}>{username}</span>
-                  </div>
-                  
-                  {showUserMenu && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '8px',
-                      backgroundColor: 'white',
-                      borderRadius: '6px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                      zIndex: 50,
-                      width: '150px',
-                      overflow: 'hidden'
-                    }}>
-                      <button
-                        onClick={handleLogout}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          width: '100%',
-                          padding: '10px 16px',
-                          fontSize: '0.875rem',
-                          color: '#dc2626',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          textAlign: 'left'
-                        }}
-                      >
-                        <FaSignOutAlt size={14} style={{ marginRight: '8px' }} />
-                        退出登录
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : null}
             </div>
           </div>
           
-          {/* Mobile menu button */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            {isMobile && (
-              <button
-                type="button"
-                style={styles.mobileMenuButton}
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          {/* 用户信息和退出按钮 */}
+          {username ? (
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  padding: '4px 12px', 
+                  backgroundColor: '#f3f4f6', 
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onClick={() => setShowUserMenu(!showUserMenu)}
               >
-                <span style={styles.srOnly}>
-                  打开主菜单
-                </span>
-                {/* Icon when menu is closed */}
-                {!isMobileMenuOpen && (
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                <FaUser size={14} style={{ color: '#4b5563', marginRight: '8px' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 'medium', color: '#374151' }}>{username}</span>
+              </div>
+              
+              {showUserMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  backgroundColor: 'white',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  zIndex: 50,
+                  width: '150px',
+                  overflow: 'hidden'
+                }}>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      padding: '10px 16px',
+                      fontSize: '0.875rem',
+                      color: '#dc2626',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      textAlign: 'left'
+                    }}
                   >
-                    <path d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                )}
-                {/* Icon when menu is open */}
-                {isMobileMenuOpen && (
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                )}
-              </button>
-            )}
-          </div>
+                    <FaSignOutAlt size={14} style={{ marginRight: '8px' }} />
+                    退出登录
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+          
+          {/* Mobile menu button */}
+          {isMobile && (
+            <button
+              type="button"
+              style={styles.mobileMenuButton}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <span style={styles.srOnly}>
+                打开主菜单
+              </span>
+              {/* Icon when menu is closed */}
+              {!isMobileMenuOpen && (
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+              {/* Icon when menu is open */}
+              {isMobileMenuOpen && (
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
