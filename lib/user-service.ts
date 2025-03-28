@@ -77,8 +77,11 @@ export async function updateUserSessionToken(user: any, token: string) {
 // 创建新用户并存储到数据库
 export async function createUser(userData: { username: string, password: string, phone: string }) {
   try {
+    console.info(`开始创建新用户: ${userData.phone}`);
+    
     // 对密码进行哈希处理
     const hashedPassword = await hash(userData.password, 10);
+    console.debug('密码哈希处理完成');
     
     // 创建新用户并存储到数据库
     const newUser = await prisma.user.create({
@@ -87,6 +90,9 @@ export async function createUser(userData: { username: string, password: string,
         password: hashedPassword,
         email: null // 可选字段
       }
+    }).catch(error => {
+      console.error('数据库创建用户失败', error);
+      throw new Error(`数据库创建用户失败: ${error.message}`);
     });
     
     // 将新用户添加到内存缓存

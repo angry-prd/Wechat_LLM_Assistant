@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 导入用户服务
+// 导入用户服务和日志记录器
 import { findUserByPhone, createUser } from '@/lib/user-service';
+import { logger } from '../../../lib/logger';
 
 // 注册新用户
 export async function POST(request: NextRequest) {
   try {
+    await logger.info('开始处理注册请求');
     const { username, password, phone } = await request.json();
     
     if (!username || !password || !phone) {
@@ -42,9 +44,10 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 201 });
   } catch (error) {
-    console.error('注册失败:', error);
+    await logger.error('注册失败', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
     return NextResponse.json(
-      { error: '注册失败，请稍后再试' },
+      { error: `注册失败：${errorMessage}` },
       { status: 500 }
     );
   }
