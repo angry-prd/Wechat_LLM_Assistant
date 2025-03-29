@@ -11,7 +11,7 @@ export default function PublishLandingPage() {
       {/* 返回首页按钮 */}
       <div className="mb-8">
         <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-          <FaArrowLeft className="mr-2" />
+          <span className="mr-2"><FaArrowLeft /></span>
           返回首页
         </Link>
       </div>
@@ -19,7 +19,7 @@ export default function PublishLandingPage() {
       {/* 标题区域 */}
       <div className="text-center mb-16">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-full mb-4">
-          <FaWeixin size={36} className="text-indigo-600" />
+          <FaWeixin size={36} />
         </div>
         <h1 className="text-4xl font-bold mb-4" style={{
           background: 'linear-gradient(to right, #4f46e5, #6366f1)',
@@ -37,7 +37,7 @@ export default function PublishLandingPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-4">
-            <FaRocket className="text-indigo-600" size={20} />
+            <span><FaRocket size={20} /></span>
           </div>
           <h3 className="text-xl font-semibold mb-3">快速发布</h3>
           <p className="text-gray-600">
@@ -47,7 +47,7 @@ export default function PublishLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-4">
-            <FaSync className="text-indigo-600" size={20} />
+            <span><FaSync size={20} /></span>
           </div>
           <h3 className="text-xl font-semibold mb-3">格式保持</h3>
           <p className="text-gray-600">
@@ -57,7 +57,7 @@ export default function PublishLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-4">
-            <FaChartLine className="text-indigo-600" size={20} />
+            <span><FaChartLine size={20} /></span>
           </div>
           <h3 className="text-xl font-semibold mb-3">内容管理</h3>
           <p className="text-gray-600">

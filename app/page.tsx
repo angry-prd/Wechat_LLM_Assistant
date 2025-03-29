@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaPen, FaRobot, FaWeixin } from 'react-icons/fa';
 
+interface Feature {
+  id: number;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  link: string;
+}
+
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState(null as number | null);
   const [isClient, setIsClient] = useState(false);
@@ -31,13 +39,13 @@ export default function Home() {
     };
   }, []);
 
-  const features = [
+  const features: Feature[] = [
     {
       id: 1,
       title: 'AI文章生成',
       description: '利用AI大模型，快速生成高质量的文章内容',
       icon: <FaRobot size={24} color="#2563eb" />,
-      link: '/ai-generator'
+      link: '/ai-chat'
     },
     {
       id: 2,
@@ -56,7 +64,7 @@ export default function Home() {
   ];
 
   // 获取功能卡片的链接地址，未登录时可访问介绍页
-  const getFeatureLink = (feature: { link: string; id: number }) => {
+  const getFeatureLink = (feature: Feature) => {
     // 特性介绍页面可自由访问，不需要登录
     if (feature.id === 1) {
       return '/ai-chat/landing'; // AI文章生成的介绍页面

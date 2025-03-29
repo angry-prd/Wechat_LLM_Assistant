@@ -11,7 +11,7 @@ export default function MarkdownEditorLandingPage() {
       {/* 返回首页按钮 */}
       <div className="mb-8">
         <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-          <FaArrowLeft className="mr-2" />
+          <span className="mr-2"><FaArrowLeft /></span>
           返回首页
         </Link>
       </div>
@@ -19,7 +19,7 @@ export default function MarkdownEditorLandingPage() {
       {/* 标题区域 */}
       <div className="text-center mb-16">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-          <FaCode size={36} className="text-green-600" />
+          <FaCode size={36} />
         </div>
         <h1 className="text-4xl font-bold mb-4" style={{
           background: 'linear-gradient(to right, #10b981, #059669)',
@@ -37,7 +37,7 @@ export default function MarkdownEditorLandingPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
-            <FaCode className="text-green-600" size={20} />
+            <span><FaCode size={20} /></span>
           </div>
           <h3 className="text-xl font-semibold mb-3">简洁高效</h3>
           <p className="text-gray-600">
@@ -47,7 +47,7 @@ export default function MarkdownEditorLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
-            <FaEye className="text-green-600" size={20} />
+            <span><FaEye size={20} /></span>
           </div>
           <h3 className="text-xl font-semibold mb-3">实时预览</h3>
           <p className="text-gray-600">
@@ -57,7 +57,7 @@ export default function MarkdownEditorLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
-            <FaImage className="text-green-600" size={20} />
+            <span><FaImage size={20} /></span>
           </div>
           <h3 className="text-xl font-semibold mb-3">多媒体支持</h3>
           <p className="text-gray-600">
@@ -72,7 +72,7 @@ export default function MarkdownEditorLandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <FaCode className="text-green-600 mr-2" />
+              <span className="mr-2"><FaCode /></span>
               丰富的语法支持
             </h3>
             <ul className="space-y-3 text-gray-700">
@@ -96,7 +96,7 @@ export default function MarkdownEditorLandingPage() {
           </div>
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <FaEye className="text-green-600 mr-2" />
+              <span className="mr-2"><FaEye /></span>
               微信风格预览
             </h3>
             <ul className="space-y-3 text-gray-700">
