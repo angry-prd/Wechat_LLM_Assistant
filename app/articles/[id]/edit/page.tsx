@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaSave, FaMobileAlt, FaWeixin } from 'react-icons/fa';
+import { FaArrowLeft, FaSave, FaMobileAlt, FaWeixin, FaSun, FaMoon } from 'react-icons/fa';
 import Toast from '../../../../components/Toast';
 import MarkdownEditor from '../../../../components/MarkdownEditor';
 import PhonePreview from '../../../../components/PhonePreview';
@@ -192,17 +191,24 @@ const styles = {
     height: 'calc(100% - 60px)',
   },
   editorColumn: {
-    flex: '3',
+    flex: '1',
     display: 'flex',
     flexDirection: 'column' as const,
     height: '100%',
+    borderRadius: '6px',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    border: '1px solid #e5e7eb',
+    overflow: 'hidden',
   },
   previewColumn: {
-    flex: '2',
+    flex: '1',
     height: '100%',
     display: 'flex',
     flexDirection: 'column' as const,
     overflow: 'hidden',
+    borderRadius: '6px',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    border: '1px solid #e5e7eb',
   },
   formGroup: {
     marginBottom: '12px',
@@ -263,10 +269,11 @@ const styles = {
   previewHeader: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: '8px',
-    marginBottom: '12px',
-    color: '#4b5563',
-    fontSize: '0.875rem',
+    padding: '12px 16px',
+    borderBottom: '1px solid #e5e7eb',
+    backgroundColor: '#f9fafb',
   },
   previewIcon: {
     color: '#2563eb',
@@ -314,6 +321,7 @@ export default function EditArticlePage() {
   const [content, setContent] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as const });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -332,82 +340,194 @@ export default function EditArticlePage() {
   // 确保组件挂载后才渲染预览，避免服务器端渲染问题
   const [isMounted, setIsMounted] = useState(false);
 
+  // 获取当前登录用户信息
+  const getCurrentUser = () => {
+    if (typeof window !== 'undefined') {
+      const userDataStr = localStorage.getItem('user');
+      if (userDataStr) {
+        try {
+          return JSON.parse(userDataStr);
+        } catch (e) {
+          console.error('解析用户数据失败:', e);
+        }
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     setIsMounted(true);
     
-    // 在实际应用中，这里会从API获取文章详情
-    // 这里使用模拟数据和localStorage中保存的文章
-    const fetchArticle = () => {
-      // 先查找模拟数据
-      let foundArticle = mockArticles.find(a => a.id === params.id);
-      
-      // 如果模拟数据中没有找到，则从localStorage中查找
-      if (!foundArticle && typeof window !== 'undefined') {
-        const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-        foundArticle = savedArticles.find((a: any) => a.id === params.id);
-      }
-      
-      if (foundArticle) {
+    const fetchArticle = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // 获取当前用户ID
+        const currentUser = getCurrentUser();
+        if (!currentUser || !currentUser.id) {
+          setError('未登录或无法获取用户信息');
+          setLoading(false);
+          return;
+        }
+        
+        // 文章ID
+        const articleId = params.id as string;
+        if (!articleId) {
+          setError('无效的文章ID');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('开始获取文章数据, ID:', articleId);
+        
+        // 从API获取文章数据
+        const timestamp = new Date().getTime();
+        const url = `/api/articles?id=${articleId}&userId=${currentUser.id}&t=${timestamp}`;
+        
+        const response = await fetch(url, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`获取文章数据失败 (${response.status})`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.message || '获取文章数据失败');
+        }
+        
+        if (!data.article) {
+          throw new Error('文章不存在或已被删除');
+        }
+        
+        console.log('成功获取文章数据:', data.article.title);
+        
+        // 设置文章数据
+        const foundArticle = data.article;
         setArticle(foundArticle);
-        setTitle(foundArticle.title);
+        setTitle(foundArticle.title || '');
         setContent(foundArticle.content || '');
-        setStatus(foundArticle.status);
+        setStatus(foundArticle.status || '草稿');
         
         // 初始化发布数据
         setPublishData(prev => ({
           ...prev,
-          title: foundArticle.title,
+          title: foundArticle.title || '',
           author: foundArticle.author || ''
         }));
+      } catch (err) {
+        console.error('获取文章数据错误:', err);
+        setError(err instanceof Error ? err.message : '加载文章数据失败');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchArticle();
   }, [params.id]);
 
-  const handleSubmit = (e: React.FormEvent, newStatus?: string) => {
+  const handleSubmit = async (e: React.FormEvent, newStatus?: string) => {
     e.preventDefault();
     
-    // 构建更新后的文章数据
-    const updatedArticle = {
-      id: params.id as string,
-      title,
-      content,
-      status: newStatus || status,
-      summary: content.substring(0, 100) + '...',
-      createdAt: article.createdAt || new Date().toISOString().split('T')[0],
-      author: publishData.author,
-      isOriginal: publishData.isOriginal,
-      allowReward: publishData.allowReward,
-      allowComment: publishData.allowComment,
-      isPaid: publishData.isPaid,
-      collection: publishData.collection
-    };
-    
-    // 在实际应用中，这里会调用API更新文章
-    console.log('更新文章:', updatedArticle);
-    
-    // 更新localStorage中的文章数据
-    if (typeof window !== 'undefined') {
-      const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-      const updatedArticles = savedArticles.map((a: any) => 
-        a.id === params.id ? { ...a, ...updatedArticle } : a
-      );
-      localStorage.setItem('articles', JSON.stringify(updatedArticles));
+    try {
+      // 获取当前用户
+      const currentUser = getCurrentUser();
+      if (!currentUser || !currentUser.id) {
+        setToast({
+          visible: true,
+          message: '未登录或无法获取用户信息，无法保存推文',
+          type: 'error'
+        });
+        return;
+      }
+      
+      // 验证标题和内容
+      if (!content.trim()) {
+        setToast({
+          visible: true,
+          message: '文章内容不能为空',
+          type: 'error'
+        });
+        return;
+      }
+      
+      if (!title.trim()) {
+        setToast({
+          visible: true,
+          message: '文章标题不能为空',
+          type: 'error'
+        });
+        return;
+      }
+      
+      // 显示加载状态
+      setToast({
+        visible: true,
+        message: '正在保存推文...',
+        type: 'info'
+      });
+      
+      // 构建更新后的文章数据
+      const updateData = {
+        id: params.id as string,
+        title,
+        content,
+        status: newStatus || status,
+        userId: currentUser.id
+      };
+      
+      console.log('更新文章:', updateData);
+      
+      // 调用API更新文章
+      const response = await fetch('/api/articles', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `更新文章失败 (${response.status})`);
+      }
+      
+      const responseData = await response.json();
+      
+      if (!responseData.success) {
+        throw new Error(responseData.message || '更新文章失败');
+      }
+      
+      // 显示保存成功的Toast提示
+      setToast({
+        visible: true,
+        message: newStatus === '已发布' ? '推文已成功发布！' : '推文更新成功！',
+        type: 'success'
+      });
+      
+      // 延迟跳转到文章列表页
+      setTimeout(() => {
+        router.push('/articles');
+      }, 1500);
+    } catch (error) {
+      console.error('更新文章错误:', error);
+      setToast({
+        visible: true,
+        message: error instanceof Error ? error.message : '更新文章失败',
+        type: 'error'
+      });
     }
-    
-    // 显示保存成功的Toast提示
-    setToast({
-      visible: true,
-      message: newStatus === '已发布' ? '推文已成功发布！' : '推文更新成功！',
-      type: 'success'
-    });
-    
-    // 延迟跳转到文章列表页
-    setTimeout(() => {
-      router.push('/articles');
-    }, 1500);
   };
   
   // 处理模态窗口中的输入变化
@@ -427,6 +547,10 @@ export default function EditArticlePage() {
     setIsModalOpen(false);
   };
 
+  const handleToggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
   if (loading) {
     return (
       <div style={styles.container}>
@@ -435,10 +559,10 @@ export default function EditArticlePage() {
     );
   }
 
-  if (!article) {
+  if (error || !article) {
     return (
       <div style={styles.container}>
-        <p>文章不存在或已被删除</p>
+        <p>{error || '文章不存在或已被删除'}</p>
         <Link href="/articles" style={styles.backLink}>
           <FaArrowLeft size={14} />
           <span>返回文章列表</span>
@@ -448,7 +572,15 @@ export default function EditArticlePage() {
   }
 
   return (
-    <div style={styles.container}>
+    <div className="h-screen flex flex-col bg-gray-50 max-w-screen pb-16 items-center">
+      {/* 顶部标题容器 */}
+      <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200 w-full max-w-6xl">
+        <h1 className="text-xl font-bold text-gray-800">推文编辑</h1>
+        <Link href="/articles" className="text-blue-600 hover:text-blue-800 text-base font-medium">
+          返回推文列表
+        </Link>
+      </header>
+      
       {/* Toast提示组件 */}
       <Toast 
         visible={toast.visible}
@@ -456,66 +588,70 @@ export default function EditArticlePage() {
         type={toast.type}
         onClose={() => setToast({ ...toast, visible: false })}
       />
-      <div style={styles.header}>
-        <h1 style={styles.title}>编辑推文</h1>
-        <Link href="/articles" style={styles.backLink}>
-          <FaArrowLeft size={14} />
-          <span>返回文章列表</span>
-        </Link>
-      </div>
+      
+      {/* 主体内容区域 */}
+      <main className="flex flex-1 overflow-auto max-w-6xl w-full">
+        {/* 左侧预览区 */}
+        <div className="flex justify-center items-center overflow-auto pl-4 w-1/2">
+          <PhonePreview
+            title={title}
+            content={content}
+            darkMode={darkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+          />
+        </div>
 
-      <form style={{ height: '100%' }} onSubmit={handleSubmit}>
-        <div style={styles.contentContainer}>
-          {/* 左侧编辑区域 */}
-          <div style={styles.editorColumn}>
-            <div style={{ flex: 1 }}>
-              <MarkdownEditor 
-                value={content} 
-                onChange={setContent} 
-              />
-            </div>
-
-            <div style={styles.buttonContainer}>
-              <Link href="/articles" style={{...styles.button, ...styles.cancelButton}}>
-                取消
-              </Link>
-              <button 
-                type="button" 
-                style={{...styles.button, ...styles.saveAsDraftButton}}
-                onClick={(e) => handleSubmit(e, '草稿')}
-              >
-                保存为草稿
-              </button>
-              <button 
-                type="button" 
-                style={{...styles.button, ...styles.saveButton}}
-                onClick={() => setIsModalOpen(true)}
-              >
-                <FaSave size={16} />
-                <span>发布推文</span>
-              </button>
-            </div>
+        {/* 右侧编辑区 */}
+        <div className="flex flex-col flex-1 overflow-auto">
+          <div className="flex items-center p-3 border-b bg-gray-100 border-gray-200">
+            <span className="font-bold text-base">Markdown 编辑器</span>
           </div>
 
-          {/* 右侧预览区域 */}
-          <div style={styles.previewColumn}>
-            <div style={styles.previewHeader}>
-              <FaMobileAlt size={16} style={styles.previewIcon} />
-              <span>微信公众号预览</span>
-            </div>
-            <div style={styles.previewContainer}>
-              {isMounted && (
-                <PhonePreview 
-                  title={title} 
-                  content={content} 
-                  darkMode={darkMode}
-                  onToggleDarkMode={() => setDarkMode(!darkMode)}
-                />
-              )}
-            </div>
+          <div className="p-3 border-b border-gray-200">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="请输入推文标题..."
+              className="w-full p-2 border border-gray-300 rounded text-lg outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
+
+          <div className="flex-1 overflow-auto">
+            <MarkdownEditor 
+              value={content} 
+              onChange={(newContent) => {
+                setContent(newContent);
+              }}
+              darkMode={darkMode}
+            />
+          </div>
+
+          <div className="p-3 flex justify-end gap-3 bg-gray-50 border-t border-gray-200 sticky bottom-0 w-full">
+            <Link 
+              href="/articles" 
+              className="px-4 py-2 rounded border border-gray-300 bg-white text-gray-800 hover:border-blue-400 hover:text-blue-500"
+            >
+              取消
+            </Link>
+            <button 
+              type="button" 
+              className="px-4 py-2 rounded border border-gray-300 bg-white text-gray-800 hover:border-blue-400 hover:text-blue-500"
+              onClick={(e) => handleSubmit(e, '草稿')}
+            >
+              保存为草稿
+            </button>
+            <button 
+              type="button" 
+              className="px-4 py-2 rounded bg-blue-500 text-white flex items-center gap-2 hover:bg-blue-600"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <FaSave size={16} />
+              <span>发布推文</span>
+            </button>
           </div>
         </div>
-      </form>
+      </main>
       
       {/* 发布推文模态窗口 */}
       {isModalOpen && (
@@ -529,116 +665,116 @@ export default function EditArticlePage() {
               >
                 ×
               </button>
+            </div>
+            
+            <form onSubmit={handlePublish}>
+              <div style={styles.formGroup}>
+                <label htmlFor="title" style={styles.label}>推文标题</label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  style={styles.input}
+                  value={publishData.title}
+                  onChange={handlePublishDataChange}
+                  placeholder="请输入推文标题"
+                  required
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label htmlFor="author" style={styles.label}>作者</label>
+                <input
+                  type="text"
+                  id="author"
+                  name="author"
+                  style={styles.input}
+                  value={publishData.author}
+                  onChange={handlePublishDataChange}
+                  placeholder="请输入作者名称"
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label htmlFor="collection" style={styles.label}>所属合集</label>
+                <input
+                  type="text"
+                  id="collection"
+                  name="collection"
+                  style={styles.input}
+                  value={publishData.collection}
+                  onChange={handlePublishDataChange}
+                  placeholder="请输入合集名称（可选）"
+                />
+              </div>
+              
+              <div style={styles.checkboxGroup}>
+                <input
+                  type="checkbox"
+                  id="isOriginal"
+                  name="isOriginal"
+                  style={styles.checkbox}
+                  checked={publishData.isOriginal}
+                  onChange={handlePublishDataChange}
+                />
+                <label htmlFor="isOriginal">原创声明</label>
+              </div>
+              
+              <div style={styles.checkboxGroup}>
+                <input
+                  type="checkbox"
+                  id="allowReward"
+                  name="allowReward"
+                  style={styles.checkbox}
+                  checked={publishData.allowReward}
+                  onChange={handlePublishDataChange}
+                />
+                <label htmlFor="allowReward">允许赞赏</label>
+              </div>
+              
+              <div style={styles.checkboxGroup}>
+                <input
+                  type="checkbox"
+                  id="allowComment"
+                  name="allowComment"
+                  style={styles.checkbox}
+                  checked={publishData.allowComment}
+                  onChange={handlePublishDataChange}
+                />
+                <label htmlFor="allowComment">允许留言</label>
+              </div>
+              
+              <div style={styles.checkboxGroup}>
+                <input
+                  type="checkbox"
+                  id="isPaid"
+                  name="isPaid"
+                  style={styles.checkbox}
+                  checked={publishData.isPaid}
+                  onChange={handlePublishDataChange}
+                />
+                <label htmlFor="isPaid">付费阅读</label>
+              </div>
+              
+              <div style={styles.buttonContainer}>
+                <button 
+                  type="button" 
+                  style={{...styles.button, ...styles.cancelButton}}
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  取消
+                </button>
+                <button 
+                  type="submit" 
+                  style={{...styles.button, ...styles.saveButton}}
+                >
+                  <FaSave size={16} />
+                  <span>确认发布</span>
+                </button>
+              </div>
+            </form>
           </div>
-          
-          <form onSubmit={handlePublish}>
-            <div style={styles.formGroup}>
-              <label htmlFor="title" style={styles.label}>推文标题</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                style={styles.input}
-                value={publishData.title}
-                onChange={handlePublishDataChange}
-                placeholder="请输入推文标题"
-                required
-              />
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label htmlFor="author" style={styles.label}>作者</label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                style={styles.input}
-                value={publishData.author}
-                onChange={handlePublishDataChange}
-                placeholder="请输入作者名称"
-              />
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label htmlFor="collection" style={styles.label}>所属合集</label>
-              <input
-                type="text"
-                id="collection"
-                name="collection"
-                style={styles.input}
-                value={publishData.collection}
-                onChange={handlePublishDataChange}
-                placeholder="请输入合集名称（可选）"
-              />
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="isOriginal"
-                name="isOriginal"
-                style={styles.checkbox}
-                checked={publishData.isOriginal}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="isOriginal">原创声明</label>
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="allowReward"
-                name="allowReward"
-                style={styles.checkbox}
-                checked={publishData.allowReward}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="allowReward">允许赞赏</label>
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="allowComment"
-                name="allowComment"
-                style={styles.checkbox}
-                checked={publishData.allowComment}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="allowComment">允许留言</label>
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="isPaid"
-                name="isPaid"
-                style={styles.checkbox}
-                checked={publishData.isPaid}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="isPaid">付费阅读</label>
-            </div>
-            
-            <div style={styles.buttonContainer}>
-              <button 
-                type="button" 
-                style={{...styles.button, ...styles.cancelButton}}
-                onClick={() => setIsModalOpen(false)}
-              >
-                取消
-              </button>
-              <button 
-                type="submit" 
-                style={{...styles.button, ...styles.saveButton}}
-              >
-                <FaSave size={16} />
-                <span>确认发布</span>
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
       )}
     </div>
   );

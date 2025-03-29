@@ -1,527 +1,166 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaSave, FaMobileAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaSave, FaSun, FaMoon } from 'react-icons/fa';
 import Toast from '../../../components/Toast';
-import MarkdownEditor from '../../../components/MarkdownEditor';
-import PhonePreview from '../../../components/PhonePreview';
+import MarkdownEditor from '@/components/MarkdownEditor';
+import PhonePreview from '@/components/PhonePreview';
+import { toast } from 'react-hot-toast';
+import { createArticle } from '@/lib/client/articleClient';
 
-// 内联样式
-const styles = {
-  modal: {
-    position: 'fixed' as const,
-    inset: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '16px',
-    zIndex: 50,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    maxWidth: '600px',
-    width: '100%',
-    padding: '24px',
-    maxHeight: '90vh',
-    overflow: 'auto',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  modalTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  modalCloseButton: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: '#6b7280',
-    cursor: 'pointer',
-    fontSize: '1.5rem',
-    padding: '0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  formGroup: {
-    marginBottom: '16px',
-  },
-  checkboxGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-  },
-  checkbox: {
-    width: '16px',
-    height: '16px',
-  },
-  container: {
-    maxWidth: '1400px',
-    margin: '0 auto',
-    padding: '24px 16px',
-    height: 'calc(100vh - 80px)', // 稍微增加可用高度
-    display: 'flex',
-    flexDirection: 'column' as const,
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px', // 减少顶部边距，给预览区域留更多空间
-  },
-  title: {
-    fontSize: '1.875rem',
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  backLink: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: '#4b5563',
-    textDecoration: 'none',
-    fontSize: '0.875rem',
-    transition: 'color 0.3s',
-  },
-  contentContainer: {
-    display: 'flex',
-    flex: 1,
-    gap: '24px',
-    height: 'calc(100% - 60px)', // 调整内容区域高度
-  },
-  editorColumn: {
-    flex: '3',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    height: '100%',
-  },
-  previewColumn: {
-    flex: '2',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    overflow: 'hidden', // 防止溢出
-  },
-  formGroupStyle: {
-    marginBottom: '12px', // 减少表单组间距
-  },
-  label: {
-    display: 'block',
-    marginBottom: '6px', // 减少标签下方间距
-    fontWeight: 'medium',
-    color: '#374151',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '0.875rem',
-  },
-  buttonContainer: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    marginTop: '12px', // 减少按钮上方间距
-  },
-  button: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '10px 16px',
-    borderRadius: '6px',
-    fontWeight: 'medium',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s',
-  },
-  saveButton: {
-    backgroundColor: '#2563eb',
-    color: 'white',
-    border: 'none',
-  },
-  saveAsDraftButton: {
-    backgroundColor: 'white',
-    color: '#4b5563',
-    border: '1px solid #d1d5db',
-  },
-  cancelButton: {
-    backgroundColor: 'white',
-    color: '#4b5563',
-    border: '1px solid #d1d5db',
-    textDecoration: 'none',
-  },
-  previewHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px', // 减少预览标题下方间距
-    color: '#4b5563',
-    fontSize: '0.875rem',
-  },
-  previewIcon: {
-    color: '#2563eb',
-  },
-  previewContainer: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 'calc(100% - 30px)', // 调整预览容器高度
-    overflow: 'hidden', // 防止溢出
-  },
-  notification: {
-    backgroundColor: '#f0fdf4',
-    border: '1px solid #86efac',
-    color: '#166534',
-    padding: '12px 16px',
-    borderRadius: '6px',
-    marginBottom: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  notificationText: {
-    fontSize: '0.875rem',
-  },
-  notificationClose: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: '#166534',
-    cursor: 'pointer',
-    fontSize: '1.25rem',
-    padding: '0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-};
-
-export default function CreateArticlePage() {
+// 使用完全不同的结构重写
+const CreateArticlePage = () => {
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as const });
-  
-  // 推文发布相关状态
-  const [publishData, setPublishData] = useState({
-    title: '',
-    author: '',
-    isOriginal: true,
-    allowReward: true,
-    allowComment: true,
-    isPaid: false,
-    collection: '',
-  });
+  const [title, setTitle] = useState<string>('');
+  const [content, setContent] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  // 确保组件挂载后才渲染预览，避免服务器端渲染问题
-  const [isMounted, setIsMounted] = useState(false);
-  
+  // 检查是否有从AI聊天页面传来的内容
   useEffect(() => {
-    setIsMounted(true);
-    
-    // 从localStorage读取AI生成的内容
     if (typeof window !== 'undefined') {
-      const savedContent = localStorage.getItem('newArticleContent');
-      const savedTitle = localStorage.getItem('newArticleTitle');
+      const draftContent = localStorage.getItem('article_draft_content');
+      const draftTitle = localStorage.getItem('article_draft_title');
       
-      if (savedContent) {
-        setContent(savedContent);
-        setShowNotification(true);
+      if (draftContent) {
+        setContent(draftContent);
         
-        // 清除localStorage中的内容，避免重复加载
-        localStorage.removeItem('newArticleContent');
-      }
-      
-      if (savedTitle) {
-        setTitle(savedTitle);
-        localStorage.removeItem('newArticleTitle');
+        if (draftTitle) {
+          setTitle(draftTitle);
+        } else {
+          setTitle(generateTitleFromContent(draftContent));
+        }
+        
+        localStorage.removeItem('article_draft_content');
+        localStorage.removeItem('article_draft_title');
+        
+        toast.success('已从AI助手导入内容');
       }
     }
   }, []);
+  
+  // 从内容中生成标题
+  const generateTitleFromContent = (text: string) => {
+    const headingMatch = text.match(/^#+ (.+)$/m);
+    if (headingMatch) {
+      return headingMatch[1].trim();
+    }
+    
+    const firstLine = text.split('\n')[0];
+    const firstSentence = firstLine.split(/[.!?。！？]/)[0];
+    
+    if (firstSentence.length > 30) {
+      return firstSentence.substring(0, 30) + '...';
+    }
+    
+    return firstSentence || '新推文';
+  };
 
-  const handleSubmit = (e: React.FormEvent, status: string) => {
-    e.preventDefault();
-    
-    // 构建文章数据
-    const articleData = {
-      title: title || publishData.title || '未命名推文',
-      content,
-      status,
-      author: publishData.author,
-      isOriginal: publishData.isOriginal,
-      allowReward: publishData.allowReward,
-      allowComment: publishData.allowComment,
-      isPaid: publishData.isPaid,
-      collection: publishData.collection,
-      summary: content.substring(0, 100) + '...',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    
-    // 在实际应用中，这里会调用API保存文章
-    console.log('保存推文:', articleData);
-    
-    // 将文章数据保存到localStorage，以便在文章列表页面显示
-    const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
-    const newArticle = {
-      id: Date.now().toString(),
-      title: articleData.title,
-      summary: articleData.summary,
-      createdAt: articleData.createdAt,
-      status: articleData.status
-    };
-    savedArticles.push(newArticle);
-    localStorage.setItem('articles', JSON.stringify(savedArticles));
-    
-    // 显示保存成功的Toast提示
-    setToast({
-      visible: true,
-      message: '推文保存成功！',
-      type: 'success'
-    });
-    
-    // 延迟跳转到文章列表页
-    setTimeout(() => {
-      router.push('/articles');
-    }, 1500);
+  // 创建文章
+  const handleCreateArticle = async (isDraft = true) => {
+    if (!title.trim()) {
+      toast.error('标题不能为空');
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error('内容不能为空');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const articleData = { title, content, published: !isDraft };
+      const response = await createArticle(articleData);
+      
+      if (response.success) {
+        toast.success('文章已创建!');
+        router.push('/articles');
+      } else {
+        toast.error(response.message || '创建失败，请重试');
+      }
+    } catch (error) {
+      console.error('Error creating article:', error);
+      toast.error('创建失败，请重试');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  // 处理模态窗口中的输入变化
-  const handlePublishDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
-    
-    setPublishData({
-      ...publishData,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-  
-  // 处理发布推文
-  const handlePublish = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSubmit(e, '已发布');
-    setIsModalOpen(false);
+
+  const handleToggleDarkMode = () => {
+    setDarkMode(!darkMode);
   };
 
   return (
-    <div style={styles.container}>
-      {/* Toast提示组件 */}
-      <Toast 
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ ...toast, visible: false })}
-      />
-      <div style={styles.header}>
-        <h1 style={styles.title}>创建新推文</h1>
-        <Link href="/articles" style={styles.backLink}>
-          <FaArrowLeft size={14} />
-          <span>返回文章列表</span>
+    <div className="flex flex-col h-screen max-w-screen pb-16 items-center">
+      {/* 顶部标题容器 */}
+      <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200 w-full max-w-6xl">
+        <h1 className="text-xl font-bold text-gray-800">推文编辑</h1>
+        <Link href="/articles" className="text-blue-600 hover:text-blue-800 text-base font-medium">
+          返回推文列表
         </Link>
-      </div>
-
-      {showNotification && (
-        <div style={styles.notification}>
-          <span style={styles.notificationText}>已从AI助手导入文章内容</span>
-          <button 
-            style={styles.notificationClose}
-            onClick={() => setShowNotification(false)}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      <form style={{ height: showNotification ? 'calc(100% - 50px)' : '100%' }} onSubmit={(e) => handleSubmit(e, '草稿')}>
-        <div style={styles.contentContainer}>
-          {/* 左侧编辑区域 */}
-          <div style={styles.editorColumn}>
-
-            
-            <div style={{ flex: 1 }}>
-              <MarkdownEditor 
-                value={content} 
-                onChange={setContent} 
-              />
-            </div>
-
-            <div style={styles.buttonContainer}>
-              <Link href="/articles" style={{...styles.button, ...styles.cancelButton}}>
-                取消
-              </Link>
-              <button 
-                type="button" 
-                style={{...styles.button, ...styles.saveAsDraftButton}}
-                onClick={(e) => handleSubmit(e, '草稿')}
-              >
-                保存为草稿
-              </button>
-              <button 
-                type="button" 
-                style={{...styles.button, ...styles.saveButton}}
-                onClick={() => setIsModalOpen(true)}
-              >
-                <FaSave size={16} />
-                <span>发布推文</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 右侧预览区域 */}
-          <div style={styles.previewColumn}>
-            <div style={styles.previewHeader}>
-              <FaMobileAlt size={16} style={styles.previewIcon} />
-              <span>微信公众号预览</span>
-            </div>
-            <div style={styles.previewContainer}>
-              {isMounted && (
-                <PhonePreview 
-                  title={title} 
-                  content={content} 
-                  darkMode={darkMode}
-                  onToggleDarkMode={() => setDarkMode(!darkMode)}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </form>
+      </header>
       
-      {/* 发布推文模态窗口 */}
-      {isModalOpen && (
-        <div style={styles.modal}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>发布推文</h2>
-              <button 
-                style={styles.modalCloseButton}
-                onClick={() => setIsModalOpen(false)}
-              >
-                ×
-              </button>
+      {/* 主要内容区域 - 使用更窄的宽度并居中 */}
+      <main className="flex flex-1 overflow-auto max-w-6xl w-full">
+        {/* 左侧预览区 - 居中显示 */}
+        <div className="flex justify-center items-center overflow-auto pl-4 w-1/2">
+          <PhonePreview 
+            title={title} 
+            content={content} 
+            darkMode={darkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+          />
+        </div>
+        
+        {/* 右侧编辑区 */}
+        <section className="flex flex-col flex-1 overflow-auto">
+          <div className={`flex items-center p-3 border-b ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>
+            <span className="font-bold text-base">Markdown 编辑器</span>
           </div>
           
-          <form onSubmit={handlePublish}>
-            <div style={styles.formGroup}>
-              <label htmlFor="title" style={styles.label}>推文标题</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                style={styles.input}
-                value={publishData.title}
-                onChange={handlePublishDataChange}
-                placeholder="请输入推文标题"
-                required
-              />
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label htmlFor="author" style={styles.label}>作者</label>
-              <input
-                type="text"
-                id="author"
-                name="author"
-                style={styles.input}
-                value={publishData.author}
-                onChange={handlePublishDataChange}
-                placeholder="请输入作者名称"
-              />
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label htmlFor="collection" style={styles.label}>所属合集</label>
-              <input
-                type="text"
-                id="collection"
-                name="collection"
-                style={styles.input}
-                value={publishData.collection}
-                onChange={handlePublishDataChange}
-                placeholder="请输入合集名称（可选）"
-              />
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="isOriginal"
-                name="isOriginal"
-                style={styles.checkbox}
-                checked={publishData.isOriginal}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="isOriginal">原创声明</label>
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="allowReward"
-                name="allowReward"
-                style={styles.checkbox}
-                checked={publishData.allowReward}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="allowReward">允许赞赏</label>
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="allowComment"
-                name="allowComment"
-                style={styles.checkbox}
-                checked={publishData.allowComment}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="allowComment">允许留言</label>
-            </div>
-            
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="isPaid"
-                name="isPaid"
-                style={styles.checkbox}
-                checked={publishData.isPaid}
-                onChange={handlePublishDataChange}
-              />
-              <label htmlFor="isPaid">付费阅读</label>
-            </div>
-            
-            <div style={styles.buttonContainer}>
-              <button 
-                type="button" 
-                style={{...styles.button, ...styles.cancelButton}}
-                onClick={() => setIsModalOpen(false)}
-              >
-                取消
-              </button>
-              <button 
-                type="submit" 
-                style={{...styles.button, ...styles.saveButton}}
-              >
-                <FaSave size={16} />
-                <span>确认发布</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      )}
+          <div className="p-3 border-b border-gray-200">
+            <input
+              type="text"
+              placeholder="输入文章标题..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded text-lg outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+            />
+          </div>
+          
+          <div className="flex-1 overflow-auto">
+            <MarkdownEditor 
+              value={content}
+              onChange={setContent}
+              darkMode={darkMode}
+            />
+          </div>
+        </section>
+      </main>
+      
+      {/* 底部按钮区域 */}
+      <footer className="bg-gray-100 border-t border-gray-200 p-3 flex justify-end sticky bottom-0 w-full max-w-6xl mx-auto">
+        <button 
+          onClick={() => handleCreateArticle(true)}
+          className={`px-4 py-2 rounded mr-3 border border-gray-300 bg-white text-gray-800 flex items-center gap-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-400 hover:text-blue-500'}`}
+          disabled={isLoading}
+        >
+          保存为草稿
+        </button>
+        <button 
+          onClick={() => handleCreateArticle(false)}
+          className={`px-4 py-2 rounded bg-blue-500 text-white flex items-center gap-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+          disabled={isLoading}
+        >
+          <FaSave />
+          {isLoading ? '处理中...' : '发布文章'}
+        </button>
+      </footer>
     </div>
   );
-}
+};
+
+export default CreateArticlePage;

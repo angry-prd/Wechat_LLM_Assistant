@@ -1,4 +1,71 @@
 // 用户认证工具库
+import type { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+
+// 添加next-auth配置
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        username: { label: "用户名", type: "text" },
+        password: { label: "密码", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) {
+          return null;
+        }
+
+        try {
+          // 调用登录API
+          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: credentials.username,
+              password: credentials.password
+            })
+          });
+          
+          const data = await response.json();
+          if (data.success && data.user) {
+            return {
+              id: data.user.id,
+              name: data.user.username,
+              email: data.user.email
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error('认证失败:', error);
+          return null;
+        }
+      }
+    })
+  ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30天
+  },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
+  callbacks: {
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    session: async ({ session, token }) => {
+      if (token && session.user) {
+        session.user.id = token.id as string;
+      }
+      return session;
+    }
+  }
+};
 
 // 从localStorage获取当前登录用户信息
 export function getCurrentUser() {

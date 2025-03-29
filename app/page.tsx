@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { FaPen, FaRobot, FaWeixin } from 'react-icons/fa';
 
 export default function Home() {
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [hoveredCard, setHoveredCard] = useState(null as number | null);
   const [isClient, setIsClient] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -36,21 +36,21 @@ export default function Home() {
       id: 1,
       title: 'AI文章生成',
       description: '利用AI大模型，快速生成高质量的文章内容',
-      icon: <FaRobot className="h-6 w-6 text-blue-600" />,
+      icon: <FaRobot size={24} color="#2563eb" />,
       link: '/ai-generator'
     },
     {
       id: 2,
       title: 'Markdown编辑',
       description: '使用Markdown编辑器，轻松美化文章排版',
-      icon: <FaPen className="h-6 w-6 text-green-600" />,
+      icon: <FaPen size={24} color="#16a34a" />,
       link: '/editor'
     },
     {
       id: 3,
       title: '一键发布',
       description: '直接发布到微信公众号，省去繁琐的复制粘贴',
-      icon: <FaWeixin className="h-6 w-6 text-indigo-600" />,
+      icon: <FaWeixin size={24} color="#4f46e5" />,
       link: '/publish'
     }
   ];

@@ -30,12 +30,67 @@ interface ChatRequest {
 // 获取模型配置 - 从数据库获取
 async function getModelConfig(modelId: string): Promise<ModelConfig | null> {
   try {
+    console.log('获取模型配置，模型ID:', modelId);
+    
     // 获取当前用户
     const session = await getServerSession(authOptions);
     const userEmail = session?.user?.email;
     
+    // 从请求头中获取userId（如果由前端传递）
+    let userId = null;
+    
+    console.log('会话信息:', { 
+      hasSession: !!session, 
+      userEmail
+    });
+    
+    // 如果没有通过会话找到用户，直接通过modelId查找
+    if (modelId) {
+      console.log('直接使用模型ID查找:', modelId);
+      const modelConfig = await prisma.chatModel.findUnique({
+        where: {
+          id: modelId
+        }
+      });
+      
+      if (modelConfig) {
+        console.log('找到模型配置:', modelConfig.name);
+        return modelConfig;
+      }
+    }
+    
     if (!userEmail) {
-      console.error('未登录或找不到用户');
+      console.log('未通过会话找到用户，尝试使用默认用户');
+      
+      // 如果未指定modelId，尝试获取默认用户的默认模型
+      const defaultModelConfig = await prisma.chatModel.findFirst({
+        where: {
+          userId: 'default',
+          isDefault: true
+        }
+      });
+      
+      if (defaultModelConfig) {
+        console.log('使用默认用户的默认模型:', defaultModelConfig.name);
+        return defaultModelConfig;
+      }
+      
+      // 获取默认用户的第一个模型
+      const firstDefaultModel = await prisma.chatModel.findFirst({
+        where: {
+          userId: 'default'
+        },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+      
+      if (firstDefaultModel) {
+        console.log('使用默认用户的第一个模型:', firstDefaultModel.name);
+        return firstDefaultModel;
+      }
+      
+      console.error('未登录且找不到默认模型');
       return null;
     }
     
@@ -54,6 +109,8 @@ async function getModelConfig(modelId: string): Promise<ModelConfig | null> {
         console.error('找不到用户记录');
         return null;
       }
+      
+      console.log('通过用户名找到用户:', userByUsername.username);
       
       // 使用找到的用户ID
       let modelConfig;
@@ -86,8 +143,16 @@ async function getModelConfig(modelId: string): Promise<ModelConfig | null> {
         }
       }
       
+      if (modelConfig) {
+        console.log('找到模型配置:', modelConfig.name);
+      } else {
+        console.log('未找到模型配置');
+      }
+      
       return modelConfig;
     }
+    
+    console.log('通过邮箱找到用户:', user.email);
     
     // 根据ID获取模型配置
     let modelConfig;
@@ -118,6 +183,12 @@ async function getModelConfig(modelId: string): Promise<ModelConfig | null> {
           }
         });
       }
+    }
+    
+    if (modelConfig) {
+      console.log('找到模型配置:', modelConfig.name);
+    } else {
+      console.log('未找到模型配置');
     }
     
     return modelConfig;

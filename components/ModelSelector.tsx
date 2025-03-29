@@ -57,9 +57,38 @@ export default function ModelSelector({
         // 添加调试信息
         console.log('开始获取模型配置');
         
+        // 获取用户ID，如果存储在localStorage中
+        let userId = null;
+        if (typeof window !== 'undefined') {
+          const userDataStr = localStorage.getItem('user');
+          if (userDataStr) {
+            try {
+              const userData = JSON.parse(userDataStr);
+              userId = userData.id;
+              console.log('从localStorage获取用户ID:', userId);
+            } catch (e) {
+              console.error('解析用户数据失败:', e);
+            }
+          }
+        }
+        
         // 添加时间戳防止缓存
         const timestamp = new Date().getTime();
-        const response = await fetch(`/api/chat-models?t=${timestamp}`);
+        const url = userId 
+          ? `/api/chat-models?t=${timestamp}&userId=${userId}` 
+          : `/api/chat-models?t=${timestamp}`;
+          
+        console.log('请求模型配置URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          credentials: 'include' // 确保发送cookies
+        });
         
         console.log('API响应状态:', response.status);
         
@@ -130,55 +159,61 @@ export default function ModelSelector({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white focus:outline-none"
+        className="flex items-center text-base font-medium px-3 py-1 rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-200"
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         title={selectedModel ? `当前模型: ${selectedModel.name}` : '选择模型'}
       >
-        <FaRobot size={18} />
-        <FaChevronDown size={10} className="ml-1" />
+        <span className="mr-2 text-sm">{selectedModel?.name || '选择模型'}</span>
+        <FaChevronDown size={12} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isDropdownOpen && (
-        <div className="absolute bottom-10 right-0 w-64 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg overflow-hidden z-20">
-          <div className="p-2">
+        <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg overflow-hidden z-50">
+          <div className="p-2 border-b border-gray-100 dark:border-gray-700">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 px-2">
-              {selectedModel ? `当前模型: ${selectedModel.name}` : '选择模型'}
+              选择模型
             </div>
           </div>
-          <div className="max-h-48 overflow-y-auto border-t border-gray-100 dark:border-gray-700">
+          <div className="max-h-60 overflow-y-auto">
             {isLoading ? (
-              <div className="p-2 text-center text-sm text-gray-500 dark:text-gray-400">加载中...</div>
+              <div className="p-2 text-center text-sm text-gray-500 dark:text-gray-400 py-4">加载中...</div>
             ) : error ? (
-              <div className="p-2 text-center text-sm text-red-500">{error}</div>
+              <div className="p-2 text-center text-sm text-red-500 py-4">{error}</div>
             ) : models.length === 0 ? (
-              <div className="p-2 text-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="p-2 text-center text-sm text-gray-500 dark:text-gray-400 py-4">
                 未配置任何模型
               </div>
             ) : (
               models.map(model => (
                 <div
                   key={model.id}
-                  className={`p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm ${
-                    selectedModel?.id === model.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm ${
+                    selectedModel?.id === model.id ? 'bg-gray-100 dark:bg-gray-700 font-medium' : ''
                   }`}
                   onClick={() => {
                     onSelectModel(model);
                     setIsDropdownOpen(false);
                   }}
                 >
-                  {model.name}
-                  {model.isDefault && <span className="ml-1 text-xs text-blue-500">(默认)</span>}
+                  <div className="flex items-center">
+                    <FaRobot className="mr-2 text-gray-500" size={14} />
+                    <div>
+                      <div className="text-gray-800 dark:text-gray-200">{model.name}</div>
+                      <div className="text-xs text-gray-500">{model.model}</div>
+                    </div>
+                    {model.isDefault && <span className="ml-auto text-xs text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">默认</span>}
+                  </div>
                 </div>
               ))
             )}
           </div>
           <div className="border-t dark:border-gray-700 p-2">
             <button
-              className="flex items-center w-full p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="flex items-center w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
               onClick={goToSettings}
             >
-              <FaCog className="mr-2" size={14} />
-              <span>模型配置</span>
+              <FaCog className="mr-2 text-gray-500" size={14} />
+              <span>模型设置</span>
             </button>
           </div>
         </div>

@@ -1,51 +1,111 @@
+/* stylelint-disable */
+/* 下面是Tailwind CSS指令，某些CSS编辑器可能会显示警告，但这些是有效的Tailwind指令 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable */
 
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
-  --navbar-height: 64px;
+  --navbar-height: 60px;
 }
 
 html {
-  scroll-behavior: smooth;
   height: 100%;
-  overflow-y: auto;
-  scroll-padding-top: var(--navbar-height);
-  /* 防止初始滚动到顶部 */
-  scroll-behavior: auto !important;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-end-rgb));
   min-height: 100vh;
-  padding-top: var(--navbar-height);
-  box-sizing: border-box;
-  position: relative;
-  overflow-x: hidden;
-  margin: 0;
 }
 
 /* 页面容器安全区域，确保内容不被导航栏遮挡 */
 .page-container {
-  margin-top: calc(var(--navbar-height) + 16px);
+  margin-top: var(--navbar-height);
+  min-height: calc(100vh - var(--navbar-height));
   width: 100%;
 }
 
-/* 确保所有主要容器有足够的顶部间距，防止被导航栏遮挡 */
-main, 
-.min-h-screen,
-[class*="container"] {
-  padding-top: 1.5rem;
-  margin-top: 0.5rem;
+/* 导航栏样式 */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--navbar-height);
+  z-index: 100;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 聊天容器样式 */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--navbar-height));
+  overflow: hidden;
+}
+
+.chat-history-sidebar {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.chat-main-area {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+/* 优化滚动容器样式 */
+.chat-messages-container {
+  height: 100%;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* 在iOS上提供惯性滚动 */
+  overscroll-behavior: contain; /* 防止滚动传播到父容器 */
+}
+
+/* 修复滚动行为，防止触发整个页面滚动 */
+.overflow-y-auto {
+  /* 添加优化的滚动行为 */
+  overscroll-behavior: contain;
+  scrollbar-width: thin; /* 对Firefox显示较细的滚动条 */
+}
+
+/* 自定义滚动条样式 */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 5px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+}
+
+.chat-input-container {
+  margin-top: auto;
+  margin-bottom: 8px;
+  padding: 0 8px;
 }
 
 /* 防止在导航结构下的元素自动滚动到顶部 */
 [id] {
-  scroll-margin-top: calc(var(--navbar-height) + 16px);
+  scroll-margin-top: var(--navbar-height);
 }
 
 /* 添加一些基础样式确保 Tailwind 生效 */

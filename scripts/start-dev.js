@@ -5,107 +5,97 @@
  * 如果端口3000被占用，自动结束占用进程并重启
  */
 
-const { execSync, spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { exec, spawn } = require('child_process');
+const os = require('os');
 
-// 检查scripts目录是否存在，不存在则创建
-const scriptsDir = path.resolve(__dirname);
-if (!fs.existsSync(scriptsDir)) {
-  fs.mkdirSync(scriptsDir, { recursive: true });
-}
+// 检查操作系统
+const platform = os.platform();
 
-// 要使用的端口
-const PORT = 3000;
+console.log('启动开发服务器...');
+console.log('第一步: 检查并释放端口 3000');
 
-// 检查端口是否被占用并获取进程ID
-function getProcessIdOnPort(port) {
-  try {
-    // MacOS和Linux的命令
-    const command = `lsof -i :${port} -P -t -sTCP:LISTEN`;
-    return execSync(command, { encoding: 'utf8' }).trim().split('\n')[0];
-  } catch (e) {
-    return null;
+// 根据不同操作系统使用适当的命令查找占用端口3000的进程
+const findProcessCommand = platform === 'win32' 
+  ? 'netstat -ano | findstr :3000' 
+  : 'lsof -i :3000 -t';
+
+// 执行查找进程命令
+exec(findProcessCommand, (error, stdout, stderr) => {
+  if (error && !stdout) {
+    console.log('端口3000当前没有被占用，直接启动开发服务器');
+    startDevServer();
+    return;
   }
-}
 
-// 释放端口，结束占用进程
-function freePort(port) {
-  try {
-    const pid = getProcessIdOnPort(port);
-    
-    if (pid) {
-      console.log(`端口 ${port} 被进程 ${pid} 占用，正在结束该进程...`);
-      
-      try {
-        // 尝试优雅地结束进程
-        execSync(`kill ${pid}`, { stdio: 'ignore' });
-        console.log(`进程 ${pid} 已成功结束`);
-      } catch (killError) {
-        // 如果优雅结束失败，强制结束
-        console.log(`优雅结束失败，正在强制结束进程 ${pid}...`);
-        execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
-        console.log(`进程 ${pid} 已被强制结束`);
+  // 获取进程ID列表
+  let pids = [];
+  if (platform === 'win32') {
+    // Windows处理方式
+    const lines = stdout.split('\n');
+    for (const line of lines) {
+      if (line.includes('LISTENING')) {
+        const match = line.match(/\s+(\d+)$/);
+        if (match && match[1]) {
+          pids.push(match[1]);
+        }
       }
-      
-      // 等待操作系统释放端口
-      console.log('等待端口释放...');
-      execSync('sleep 1');
+    }
+  } else {
+    // Unix系统处理方式
+    pids = stdout.trim().split('\n');
+  }
+
+  if (pids.length === 0) {
+    console.log('没有找到占用端口3000的进程，直接启动开发服务器');
+    startDevServer();
+    return;
+  }
+
+  console.log(`找到以下进程占用端口3000: ${pids.join(', ')}`);
+  
+  // 终止所有占用端口的进程
+  const killCommand = platform === 'win32' 
+    ? `taskkill /F /PID ${pids.join(' /PID ')}` 
+    : `kill -9 ${pids.join(' ')}`;
+  
+  console.log(`正在终止进程: ${killCommand}`);
+  
+  exec(killCommand, (killError, killStdout, killStderr) => {
+    if (killError) {
+      console.error(`终止进程时出错: ${killError.message}`);
+      console.error('尝试使用不同端口启动');
+      startDevServer(3001);
+      return;
     }
     
-    return true;
-  } catch (e) {
-    console.error('释放端口失败:', e.message);
-    return false;
-  }
-}
+    console.log('成功终止所有占用端口3000的进程');
+    
+    // 等待一秒以确保端口完全释放
+    setTimeout(() => {
+      startDevServer();
+    }, 1000);
+  });
+});
 
-// 启动Next.js开发服务器
-function startDevServer() {
-  console.log(`正在启动Next.js开发服务器在端口 ${PORT}...`);
+// 启动开发服务器
+function startDevServer(port = 3000) {
+  console.log(`第二步: 启动Next.js开发服务器在端口 ${port}`);
   
-  const nextProcess = spawn('npx', ['next', 'dev', '-p', PORT], {
-    stdio: 'inherit',
+  // 使用spawn而非exec，可以将输出直接传递到控制台
+  const nextProcess = spawn('npx', ['next', 'dev', '-p', port.toString()], {
+    stdio: 'inherit', // 继承父进程的stdio，这样输出会直接显示在控制台
     shell: true
   });
   
-  nextProcess.on('error', (err) => {
-    console.error('启动开发服务器失败:', err);
-  });
-  
-  return nextProcess;
-}
-
-// 主函数
-function main() {
-  console.log(`==== 微信公众号AI助手开发服务器启动工具 ====`);
-  console.log(`检查端口 ${PORT} 是否可用...`);
-  
-  // 检查端口是否被占用
-  const pid = getProcessIdOnPort(PORT);
-  
-  if (pid) {
-    console.log(`端口 ${PORT} 被占用，正在尝试释放...`);
-    const freed = freePort(PORT);
-    
-    if (!freed) {
-      console.error(`无法释放端口 ${PORT}，请手动结束占用进程后重试`);
-      process.exit(1);
+  // 处理进程退出
+  nextProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.log(`开发服务器异常退出，退出码: ${code}`);
     }
-  } else {
-    console.log(`端口 ${PORT} 空闲，可以使用`);
-  }
-  
-  // 启动开发服务器
-  const server = startDevServer();
-  
-  // 处理进程终止信号
-  process.on('SIGINT', () => {
-    console.log('收到终止信号，关闭开发服务器...');
-    server.kill();
-    process.exit(0);
   });
-}
-
-// 执行主函数
-main(); 
+  
+  // 处理错误
+  nextProcess.on('error', (err) => {
+    console.error(`启动开发服务器时出错: ${err.message}`);
+  });
+} 

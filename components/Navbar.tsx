@@ -11,7 +11,7 @@ import { isLoggedIn } from '@/lib/auth';
 const styles = {
   nav: {
     backgroundColor: 'white',
-    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     position: 'fixed' as const,
     top: 0,
     left: 0,
@@ -33,7 +33,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    height: '64px',
+    height: '100%',
   },
   flex: {
     display: 'flex',
@@ -324,7 +324,7 @@ export default function Navbar() {
   // 服务器端渲染默认导航
   if (!isClient) {
     return (
-      <nav style={styles.nav}>
+      <nav style={styles.nav} className="navbar">
         <div style={styles.container}>
           <div style={styles.flexBetween}>
             <div style={styles.flex}>
@@ -358,7 +358,7 @@ export default function Navbar() {
 
   // 客户端渲染，响应式导航
   return (
-    <nav style={styles.nav}>
+    <nav style={styles.nav} className="navbar">
       <div style={styles.container}>
         <div style={styles.flexBetween}>
           <div style={styles.flex}>

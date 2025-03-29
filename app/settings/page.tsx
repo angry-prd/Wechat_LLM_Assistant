@@ -86,8 +86,8 @@ export default function Settings() {
       id: '',
       name: '',
       apiKey: '',
-      endpoint: 'https://api.openai.com/v1/chat/completions',
-      model: 'gpt-3.5-turbo',
+      endpoint: '',
+      model: '',
       isDefault: models.length === 0 // 如果没有模型，默认设为默认
     });
     setEditingModel(null);
@@ -338,6 +338,7 @@ export default function Settings() {
                   value={formData.name}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="例如: GPT-3.5"
                   required
                 />
               </div>
@@ -351,7 +352,7 @@ export default function Settings() {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   required={!editingModel}
-                  placeholder={editingModel ? '留空表示不修改' : ''}
+                  placeholder={editingModel ? '留空表示不修改' : '例如: sk-...'}
                 />
               </div>
               
@@ -363,8 +364,10 @@ export default function Settings() {
                   value={formData.endpoint}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="例如: https://api.openai.com/v1/chat/completions"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">OpenAI API使用: https://api.openai.com/v1/chat/completions</p>
               </div>
               
               <div className="mb-4">
@@ -375,8 +378,10 @@ export default function Settings() {
                   value={formData.model}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="例如: gpt-3.5-turbo"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">OpenAI模型: gpt-3.5-turbo, gpt-4, gpt-4-turbo等</p>
               </div>
               
               <div className="mb-4 flex items-center">

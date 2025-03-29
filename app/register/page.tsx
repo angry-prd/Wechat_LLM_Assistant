@@ -13,10 +13,12 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
-    phone: '',
+    email: '',
     password: '',
     confirmPassword: ''
   });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,57 +30,88 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
     
-    // 验证密码是否匹配
-    if (formData.password !== formData.confirmPassword) {
-      setToast({
-        visible: true,
-        message: '两次输入的密码不一致',
-        type: 'error'
-      });
+    console.log('提交表单数据:', formData);
+    
+    // 表单验证
+    if (!formData.username) {
+      setError('请输入用户名');
+      setIsLoading(false);
       return;
     }
     
-    setIsLoading(true);
-
+    if (!formData.password) {
+      setError('请输入密码');
+      setIsLoading(false);
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('两次密码输入不一致');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      const response = await fetch('/api/auth', {
+      console.log('开始发送注册请求');
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username: formData.username,
-          phone: formData.phone,
-          password: formData.password
-        })
+          password: formData.password,
+          email: formData.email
+        }),
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
+      
+      const data = await response.json();
+      console.log('注册响应:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || '注册失败');
+      }
+      
+      if (data.success) {
+        // 注册成功，保存用户信息
+        const userData = {
+          id: data.user.id,
+          username: data.user.username,
+          email: data.user.email
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // 显示成功消息并准备跳转
+        setSuccess('注册成功，即将跳转到登录页面...');
         setToast({
           visible: true,
-          message: '注册成功，请登录',
+          message: '注册成功，即将跳转到登录页面...',
           type: 'success'
         });
         
-        // 注册成功后跳转到登录页面
+        // 3秒后跳转到登录页面
         setTimeout(() => {
           router.push('/login');
-        }, 1500);
+        }, 3000);
       } else {
+        setError(data.error || '注册失败，请稍后再试');
         setToast({
           visible: true,
-          message: result.error || '注册失败，请重试',
+          message: data.error || '注册失败，请稍后再试',
           type: 'error'
         });
       }
     } catch (error) {
-      console.error('注册请求失败:', error);
+      console.error('注册错误:', error);
+      const errorMessage = error instanceof Error ? error.message : '注册失败，请稍后再试';
+      setError(errorMessage);
       setToast({
         visible: true,
-        message: '注册请求失败，请检查网络连接',
+        message: errorMessage,
         type: 'error'
       });
     } finally {
@@ -106,6 +139,36 @@ export default function Register() {
           </p>
         </div>
         
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-50 border-l-4 border-green-400 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-700">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
@@ -122,16 +185,14 @@ export default function Register() {
               />
             </div>
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
               <input
-                id="phone"
-                name="phone"
-                type="tel"
-                pattern="[0-9]{11}"
-                required
+                id="email"
+                name="email"
+                type="email"
                 className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm transition duration-150 ease-in-out"
-                placeholder="请输入11位手机号码"
-                value={formData.phone}
+                placeholder="请输入邮箱地址"
+                value={formData.email}
                 onChange={handleInputChange}
               />
             </div>

@@ -87,6 +87,10 @@ export function middleware(request: NextRequest) {
       // 如果是页面路径，立即重定向到登录页面并添加重定向参数
       const redirectUrl = new URL('/login', request.url);
       redirectUrl.searchParams.set('redirect', path);
+      
+      // 添加调试日志（在生产环境可注释掉）
+      console.log(`用户未授权，重定向到: ${redirectUrl.toString()} 来自 ${path}`);
+      
       return NextResponse.redirect(redirectUrl);
     }
   }

@@ -28,56 +28,105 @@ export default function ClientAuthCheck({
   const { data: session, status } = useSession();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
+  
+  // 设置最大检查时间
+  const maxCheckTime = 2000; // 2秒
 
   useEffect(() => {
-    // 检查用户是否已登录（同时检查多种登录方式）
-    const checkAuth = () => {
-      // 检查自定义登录系统
-      const customLoggedIn = isLoggedIn();
-      
-      // 检查NextAuth
-      const nextAuthLoggedIn = status === 'authenticated' && session !== null;
-      
-      // 检查session_token
-      const hasSessionToken = localStorage.getItem('session_token') !== null;
-      
-      // 用户是否已授权（满足任一条件）
-      const isUserAuthorized = customLoggedIn || nextAuthLoggedIn || hasSessionToken;
-      
-      return isUserAuthorized;
-    };
-
-    const performAuthCheck = () => {
-      setIsChecking(true);
-      
-      // 等待NextAuth状态加载完成
-      if (status === 'loading') return;
-      
-      const authResult = checkAuth();
-      setIsAuthorized(authResult);
-      
-      // 如果未授权，保存当前URL并重定向到登录页面
-      if (!authResult) {
-        const currentPath = window.location.pathname;
-        // 保存当前URL到localStorage以便登录后重定向
-        localStorage.setItem('redirectUrl', currentPath);
+    let checkTimeout: NodeJS.Timeout | null = null;
+    
+    // 立即进行基本身份验证检查（不等待NextAuth）
+    const performImmediateCheck = () => {
+      try {
+        console.log('执行立即身份验证检查');
         
-        // 构建重定向URL，包含当前路径作为重定向参数
-        const loginUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
-        router.replace(loginUrl);
+        // 检查自定义登录系统
+        const customLoggedIn = isLoggedIn();
+        
+        // 检查session_token
+        const hasSessionToken = localStorage.getItem('session_token') !== null;
+        
+        // 如果任何一个直接检查通过
+        if (customLoggedIn || hasSessionToken) {
+          console.log('本地验证成功，用户已登录');
+          setIsAuthorized(true);
+          setIsChecking(false);
+          return true;
+        }
+        
+        // 如果都不通过，并且NextAuth还在加载，设置超时等待NextAuth
+        if (status === 'loading') {
+          console.log('本地验证失败，等待NextAuth验证结果');
+          return false;
+        }
+        
+        // 如果NextAuth已完成加载，检查其结果
+        if (status === 'authenticated' && session) {
+          console.log('NextAuth验证成功，用户已登录');
+          setIsAuthorized(true);
+          setIsChecking(false);
+          return true;
+        }
+        
+        // 所有验证都失败，用户未登录
+        console.log('所有验证方式均失败，用户未登录');
+        redirectToLogin();
+        return false;
+      } catch (error) {
+        console.error('权限检查出错:', error);
+        redirectToLogin();
+        return false;
       }
-      
-      setIsChecking(false);
     };
-
-    performAuthCheck();
+    
+    // 立即执行一次初始检查
+    const initialCheckResult = performImmediateCheck();
+    
+    // 如果初始检查未通过，设置超时
+    if (!initialCheckResult && status === 'loading') {
+      console.log(`设置${maxCheckTime}毫秒超时，等待NextAuth`);
+      
+      checkTimeout = setTimeout(() => {
+        console.log('NextAuth验证超时，当作未授权处理');
+        redirectToLogin();
+      }, maxCheckTime);
+    }
+    
+    // 清理函数
+    return () => {
+      if (checkTimeout) {
+        clearTimeout(checkTimeout);
+      }
+    };
   }, [status, session, router, redirectTo]);
+  
+  // 重定向到登录页面
+  const redirectToLogin = () => {
+    setIsAuthorized(false);
+    setIsChecking(false);
+    
+    const currentPath = window.location.pathname;
+    // 保存当前URL到localStorage以便登录后重定向
+    localStorage.setItem('redirectUrl', currentPath);
+    
+    // 构建重定向URL，包含当前路径作为重定向参数
+    const loginUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
+    console.log('未授权，立即重定向到:', loginUrl);
+    
+    // 使用window.location直接跳转，确保完全刷新页面
+    window.location.href = loginUrl;
+  };
 
-  // 只有当确认已授权后才显示子组件
+  // 如果已完成授权检查且已授权，显示子内容
   if (isAuthorized === true) {
     return <>{children}</>;
   }
   
-  // 否则显示fallback（通常是加载状态）
+  // 如果已检查完成且未授权，直接返回null（此时已经重定向了）
+  if (isAuthorized === false && !isChecking) {
+    return null;
+  }
+  
+  // 正在检查中，显示加载状态
   return <>{fallback}</>;
 } 

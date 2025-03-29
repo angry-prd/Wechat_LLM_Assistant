@@ -1,35 +1,27 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql" // 已修改为mysql以兼容MariaDB数据库
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-// 用户模型
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  email     String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // 关联
+  id            String        @id @default(uuid())
+  username      String        @unique
+  password      String
+  email         String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   articles      Article[]
+  chatHistories ChatHistory[]
   chatModels    ChatModel[]
   userConfig    UserConfig?
-  chatHistories ChatHistory[]
+
+  @@map("users")
 }
 
-// 聊天模型配置
 model ChatModel {
   id        String   @id @default(uuid())
   name      String
@@ -39,52 +31,53 @@ model ChatModel {
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  // 关联
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "chat_models_userId_fkey")
+  @@map("chat_models")
 }
 
-// 用户配置
 model UserConfig {
-  id                    String   @id @default(uuid())
-  sessionToken          String?  // 用户会话令牌
-  wechatAppId           String?
-  wechatAppSecret       String?
-  wechatToken           String?
-  wechatEncodingAESKey  String?
-  defaultArticleAuthor  String?
+  id                      String   @id @default(uuid())
+  sessionToken            String?
+  wechatAppId             String?
+  wechatAppSecret         String?
+  wechatToken             String?
+  wechatEncodingAESKey    String?
+  defaultArticleAuthor    String?
   defaultArticleCopyright String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  // 关联
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_configs")
 }
 
-// 文章模型
 model Article {
   id        String   @id @default(uuid())
   title     String
-  content   String
+  content   String   @db.Text
+  status    String?  @default("草稿")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  // 关联
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "articles_userId_fkey")
+  @@map("articles")
 }
 
-// 聊天历史记录模型
 model ChatHistory {
   id        String   @id @default(uuid())
   title     String
-  messages  String   // JSON string of messages
+  messages  String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  // 关联
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "chat_histories_userId_fkey")
+  @@map("chat_histories")
 }

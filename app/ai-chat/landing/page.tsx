@@ -10,7 +10,9 @@ export default function AIChatLandingPage() {
       {/* 返回首页按钮 */}
       <div className="mb-8">
         <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-          <FaArrowLeft className="mr-2" />
+          <span className="mr-2 inline-block">
+            <FaArrowLeft size={16} color="currentColor" />
+          </span>
           返回首页
         </Link>
       </div>
@@ -18,7 +20,7 @@ export default function AIChatLandingPage() {
       {/* 标题区域 */}
       <div className="text-center mb-16">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-100 rounded-full mb-4">
-          <FaRobot size={36} className="text-purple-600" />
+          <FaRobot size={36} color="#9333ea" />
         </div>
         <h1 className="text-4xl font-bold mb-4" style={{
           background: 'linear-gradient(to right, #8b5cf6, #6366f1)',
@@ -36,7 +38,7 @@ export default function AIChatLandingPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-4">
-            <FaComments className="text-purple-600" size={20} />
+            <FaComments size={20} color="#9333ea" />
           </div>
           <h3 className="text-xl font-semibold mb-3">自然对话</h3>
           <p className="text-gray-600">
@@ -46,7 +48,7 @@ export default function AIChatLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-4">
-            <FaLightbulb className="text-purple-600" size={20} />
+            <FaLightbulb size={20} color="#9333ea" />
           </div>
           <h3 className="text-xl font-semibold mb-3">创作助手</h3>
           <p className="text-gray-600">
@@ -56,7 +58,7 @@ export default function AIChatLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-4">
-            <FaHistory className="text-purple-600" size={20} />
+            <FaHistory size={20} color="#9333ea" />
           </div>
           <h3 className="text-xl font-semibold mb-3">对话记录</h3>
           <p className="text-gray-600">
@@ -132,7 +134,7 @@ export default function AIChatLandingPage() {
             <div className="flex items-start">
               <div className="flex-shrink-0 mr-4">
                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                  <FaUserFriends className="text-gray-600" />
+                  <FaUserFriends size={18} color="#4b5563" />
                 </div>
               </div>
               <div className="bg-gray-100 rounded-lg p-4 max-w-3xl">
@@ -143,7 +145,7 @@ export default function AIChatLandingPage() {
             <div className="flex items-start">
               <div className="flex-shrink-0 mr-4">
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <FaRobot className="text-purple-600" />
+                  <FaRobot size={18} color="#9333ea" />
                 </div>
               </div>
               <div className="bg-purple-50 rounded-lg p-4 max-w-3xl">

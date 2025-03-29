@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // 解决react-syntax-highlighter的导入问题
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -12,13 +12,16 @@ const nextConfig = {
     
     return config;
   },
-
-}
-
-module.exports = {
-  ...nextConfig,
   // 设置开发服务器端口为3000
   env: {
     PORT: "3000"
-  }
+  },
+  // 确保CSS正确应用
+  compiler: {
+    styledComponents: true,
+  },
+  // 确保路由正确工作
+  trailingSlash: false
 }
+
+module.exports = nextConfig;

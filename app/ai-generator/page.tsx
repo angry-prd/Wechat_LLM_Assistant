@@ -10,7 +10,9 @@ export default function AIGeneratorLandingPage() {
       {/* 返回首页按钮 */}
       <div className="mb-8">
         <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-          <FaArrowLeft className="mr-2" />
+          <span className="mr-2 inline-block">
+            <FaArrowLeft size={16} color="currentColor" />
+          </span>
           返回首页
         </Link>
       </div>
@@ -18,7 +20,7 @@ export default function AIGeneratorLandingPage() {
       {/* 标题区域 */}
       <div className="text-center mb-16">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
-          <FaRobot size={36} className="text-blue-600" />
+          <FaRobot size={36} color="#2563eb" />
         </div>
         <h1 className="text-4xl font-bold mb-4" style={{
           background: 'linear-gradient(to right, #2563eb, #4f46e5)',
@@ -36,7 +38,7 @@ export default function AIGeneratorLandingPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
-            <FaMagic className="text-blue-600" size={20} />
+            <FaMagic size={20} color="#2563eb" />
           </div>
           <h3 className="text-xl font-semibold mb-3">智能创作</h3>
           <p className="text-gray-600">
@@ -46,7 +48,7 @@ export default function AIGeneratorLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
-            <FaRegClock className="text-blue-600" size={20} />
+            <FaRegClock size={20} color="#2563eb" />
           </div>
           <h3 className="text-xl font-semibold mb-3">效率提升</h3>
           <p className="text-gray-600">
@@ -56,7 +58,7 @@ export default function AIGeneratorLandingPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
-            <FaRegLightbulb className="text-blue-600" size={20} />
+            <FaRegLightbulb size={20} color="#2563eb" />
           </div>
           <h3 className="text-xl font-semibold mb-3">创意激发</h3>
           <p className="text-gray-600">
@@ -94,7 +96,7 @@ export default function AIGeneratorLandingPage() {
           <div className="flex items-start mb-4">
             <div className="flex-shrink-0 mr-4">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <FaRegEdit className="text-blue-600" />
+                <FaRegEdit size={18} color="#2563eb" />
               </div>
             </div>
             <div>
