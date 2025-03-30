@@ -1,126 +1,160 @@
+# 写在前面的话
+- 我是一个完全不懂技术的产品经理，纯爱好，用AI编程工具写的项目，中途因为账号和成本的问题，折腾了很多客户端，导致代码有点乱，理解万岁！
+- 现在功能还没有彻底完成，还在持续更新中！
+
 # 微信公众号AI助手
 
-一个集成了AI大模型和Markdown编辑器的微信公众号推文助手，帮助用户生成、编辑和发布高质量的推文。
+一个集成了AI大模型和Markdown编辑器的微信公众号推文助手，支持本地部署，数据和API配置完全由用户自己控制。
 
-## 主要功能
+## 🌟 功能特点
 
-- **AI文章生成**: 利用AI大模型，快速生成高质量的文章内容
-- **Markdown编辑**: 使用Markdown编辑器，轻松美化文章排版
-- **一键发布**: 直接发布到微信公众号，省去繁琐的复制粘贴
+- **AI文章生成**：利用AI大模型，快速生成高质量的文章内容
+- **Markdown编辑**：使用Markdown编辑器，轻松美化文章排版
+- **本地部署**：所有数据存储在本地，无需担心隐私泄露
+- **自定义配置**：支持配置多种AI大模型，包括本地模型和API模型
+- **微信发布**：支持将文章发布到微信公众号（需配置微信公众号API）
+- **本地存储**：未配置微信API时，文章内容会保存在本地文件中
 
-## 技术栈
+## 📋 系统要求
 
-- 前端: Next.js, React, TypeScript, Tailwind CSS
-- 数据库: MySQL (通过Prisma ORM)
-- API接口: Next.js API Routes
-- UI组件库: React-icons和自定义组件
+- Node.js 18.x 或更高版本
+- npm 或 yarn 包管理器
+- 可选：本地AI模型服务器（如果希望完全离线使用）
 
-## 系统特点
+## 🚀 快速开始
 
-### 权限控制系统
+### 安装
 
-系统采用统一的权限控制机制，确保只有登录用户才能访问特定功能：
-
-1. **未登录用户**:
-   - 可以查看首页和公开内容
-   - 无法访问AI聊天、推文管理和系统设置等功能
-   - 尝试访问受保护功能时会自动重定向到登录页面
-   - 导航栏中不显示"系统配置"选项
-
-2. **已登录用户**:
-   - 可以自由访问所有功能
-   - 导航栏中显示"系统配置"选项
-   - 拥有完整的用户体验
-
-3. **权限控制实现**:
-   - 使用中间件拦截受保护路径和API请求
-   - 保存原始访问路径，登录后自动跳回
-   - 支持多种认证方式，包括自定义认证和NextAuth
-
-### 登录状态显示
-
-系统在界面上明确显示用户的登录状态：
-
-1. **未登录状态**:
-   - 显示醒目的红色"未登录"提示
-   - 点击提示可直接跳转到登录页面
-
-2. **已登录状态**:
-   - 显示绿色的"已登录"提示
-   - 显示用户名信息
-   - 提供退出登录选项
-
-## 开发工具
-
-### 开发预览功能
-
-在开发过程中，提供了一个内部预览工具，可以在编辑器内直接查看UI组件和状态：
-
-- 直接在编辑器内预览UI组件效果
-- 支持模拟登录/未登录状态切换
-- 包含导航栏、登录状态和移动菜单预览
-
-### 启动脚本
-
-提供了两种启动方式：
-
-1. `npm run dev`: 在3000端口启动应用
-2. `npm run dev:force`: 自动释放3000端口并启动应用，适合端口被占用的情况
-
-## 安装和使用
+1. 克隆本仓库到本地：
 
 ```bash
-# 安装依赖
+git clone https://github.com/yourusername/wechat-llm-assistant.git
+cd wechat-llm-assistant
+```
+
+2. 安装依赖：
+
+```bash
 npm install
-
-# 开发模式启动
-npm run dev
-
-# 如果端口被占用，强制启动
-npm run dev:force
-
-# 构建生产版本
-npm run build
-
-# 启动生产版本
-npm run start
+# 或使用 yarn
+yarn install
 ```
 
-## 贡献指南
+3. 初始化数据库：
 
-欢迎贡献代码！请确保您的代码符合项目的代码风格和命名规范。提交PR前，请确保通过所有测试。
+```bash
+npx prisma migrate dev --name init
+```
 
-## Getting Started
-
-First, run the development server:
+4. 启动开发服务器：
 
 ```bash
 npm run dev
-# or
+# 或使用 yarn
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. 打开浏览器访问：`http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 生产环境部署
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. 构建生产版本：
 
-## Learn More
+```bash
+npm run build
+# 或使用 yarn
+yarn build
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. 启动生产服务器：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run start
+# 或使用 yarn
+yarn start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ⚙️ 配置
 
-## Deploy on Vercel
+首次运行时，系统会在项目根目录创建一个 `local-config.json` 文件，你可以编辑此文件自定义配置：
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{
+  "appName": "微信公众号AI助手",
+  "port": 3000,
+  
+  "admin": {
+    "username": "admin",
+    "password": "admin123",
+    "email": "admin@example.com"
+  },
+  
+  "aiModel": {
+    "useLocalModel": false,
+    "localModelEndpoint": "http://localhost:1234/v1/chat/completions",
+    "models": [
+      {
+        "name": "默认AI模型",
+        "apiKey": "",
+        "endpoint": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-3.5-turbo",
+        "isDefault": true
+      }
+    ]
+  },
+  
+  "wechat": {
+    "appId": "",
+    "appSecret": "",
+    "token": "",
+    "encodingAESKey": ""
+  },
+  
+  "articleDefaults": {
+    "author": "微信公众号作者",
+    "copyright": "© 2024 版权所有"
+  }
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 配置本地AI模型
+
+如果你想使用本地部署的AI模型（如 [Ollama](https://github.com/ollama/ollama) 或其他兼容 OpenAI API 的模型服务）：
+
+1. 在 `local-config.json` 文件中设置 `aiModel.useLocalModel` 为 `true`
+2. 将 `aiModel.localModelEndpoint` 设置为你本地模型的API地址
+3. 配置你希望使用的模型名称
+
+### 配置微信公众号
+
+1. 登录微信公众平台，获取 `AppID`、`AppSecret` 等信息
+2. 将这些信息填入 `local-config.json` 的 `wechat` 部分
+3. 或者在应用内登录后，在设置页面进行配置
+
+## 🔒 数据存储
+
+所有数据默认存储在本地SQLite数据库中，文件位置：`prisma/dev.db`
+
+文章发布相关文件存储在 `data/articles` 目录
+
+## 🤝 贡献指南
+
+欢迎贡献代码或提出建议！请遵循以下步骤：
+
+1. Fork 本项目
+2. 创建你的特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交你的改动 (`git commit -m 'Add some amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 开启一个 Pull Request
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
+## 📞 联系方式
+
+如有问题或建议，请通过 GitHub Issues 联系我们。
+
+---
+
+希望这个工具能帮助你更高效地管理和发布微信公众号内容！

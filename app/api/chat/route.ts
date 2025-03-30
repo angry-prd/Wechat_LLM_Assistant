@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { config } from '@/config/local-config';
 
 // 模型配置接口
 interface ModelConfig {
@@ -15,183 +15,94 @@ interface ModelConfig {
 
 // 消息接口
 interface Message {
-  role: 'system' | 'user' | 'assistant';
+  role: string;
   content: string;
 }
 
 // 请求接口
 interface ChatRequest {
-  modelId: string;
   messages: Message[];
+  modelId?: string;
   temperature?: number;
   max_tokens?: number;
 }
 
-// 获取模型配置 - 从数据库获取
-async function getModelConfig(modelId: string): Promise<ModelConfig | null> {
+// 获取模型配置
+async function getModelConfig(modelId: string | undefined) {
   try {
-    console.log('获取模型配置，模型ID:', modelId);
-    
-    // 获取当前用户
-    const session = await getServerSession(authOptions);
-    const userEmail = session?.user?.email;
-    
-    // 从请求头中获取userId（如果由前端传递）
-    let userId = null;
-    
-    console.log('会话信息:', { 
-      hasSession: !!session, 
-      userEmail
-    });
-    
-    // 如果没有通过会话找到用户，直接通过modelId查找
-    if (modelId) {
-      console.log('直接使用模型ID查找:', modelId);
-      const modelConfig = await prisma.chatModel.findUnique({
-        where: {
-          id: modelId
-        }
+    // 如果未指定模型ID，尝试获取默认模型配置
+    if (!modelId) {
+      console.log('未指定模型ID，尝试获取默认模型');
+      
+      // 先从数据库中查找用户的默认模型
+      const defaultModel = await prisma.chatModel.findFirst({
+        where: { isDefault: true }
       });
       
-      if (modelConfig) {
-        console.log('找到模型配置:', modelConfig.name);
-        return modelConfig;
-      }
-    }
-    
-    if (!userEmail) {
-      console.log('未通过会话找到用户，尝试使用默认用户');
-      
-      // 如果未指定modelId，尝试获取默认用户的默认模型
-      const defaultModelConfig = await prisma.chatModel.findFirst({
-        where: {
-          userId: 'default',
-          isDefault: true
-        }
-      });
-      
-      if (defaultModelConfig) {
-        console.log('使用默认用户的默认模型:', defaultModelConfig.name);
-        return defaultModelConfig;
+      if (defaultModel) {
+        console.log('从数据库找到默认模型:', defaultModel.name);
+        return defaultModel;
       }
       
-      // 获取默认用户的第一个模型
-      const firstDefaultModel = await prisma.chatModel.findFirst({
-        where: {
-          userId: 'default'
-        },
-        orderBy: {
-          createdAt: 'asc'
-        }
-      });
+      // 如果数据库中没有默认模型，使用配置文件中的默认模型
+      console.log('使用配置文件中的默认模型');
+      const localDefaultModel = config.aiModel.models.find(model => model.isDefault);
       
-      if (firstDefaultModel) {
-        console.log('使用默认用户的第一个模型:', firstDefaultModel.name);
-        return firstDefaultModel;
+      if (localDefaultModel) {
+        console.log('使用本地配置的默认模型:', localDefaultModel.name);
+        return {
+          id: 'local-default',
+          name: localDefaultModel.name,
+          apiKey: localDefaultModel.apiKey,
+          endpoint: localDefaultModel.endpoint,
+          model: localDefaultModel.model,
+          isDefault: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: 'local'
+        };
       }
       
-      console.error('未登录且找不到默认模型');
+      // 如果没有找到默认模型，返回null
+      console.log('未找到默认模型配置');
       return null;
     }
     
-    // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail }
-    });
-    
-    if (!user) {
-      // 尝试通过用户名查找
-      const userByUsername = await prisma.user.findUnique({
-        where: { username: userEmail }
+    // 如果指定了模型ID，先从数据库查找
+    console.log('尝试查找模型ID:', modelId);
+    if (modelId !== 'local-default') {
+      const model = await prisma.chatModel.findUnique({
+        where: { id: modelId }
       });
       
-      if (!userByUsername) {
-        console.error('找不到用户记录');
-        return null;
-      }
-      
-      console.log('通过用户名找到用户:', userByUsername.username);
-      
-      // 使用找到的用户ID
-      let modelConfig;
-      if (modelId) {
-        modelConfig = await prisma.chatModel.findFirst({
-          where: {
-            id: modelId,
-            userId: userByUsername.id
-          }
-        });
-      } else {
-        // 如果未指定modelId，获取默认模型
-        modelConfig = await prisma.chatModel.findFirst({
-          where: {
-            userId: userByUsername.id,
-            isDefault: true
-          }
-        });
-        
-        // 如果没有默认模型，获取第一个模型
-        if (!modelConfig) {
-          modelConfig = await prisma.chatModel.findFirst({
-            where: {
-              userId: userByUsername.id
-            },
-            orderBy: {
-              createdAt: 'asc'
-            }
-          });
-        }
-      }
-      
-      if (modelConfig) {
-        console.log('找到模型配置:', modelConfig.name);
-      } else {
-        console.log('未找到模型配置');
-      }
-      
-      return modelConfig;
-    }
-    
-    console.log('通过邮箱找到用户:', user.email);
-    
-    // 根据ID获取模型配置
-    let modelConfig;
-    if (modelId) {
-      modelConfig = await prisma.chatModel.findFirst({
-        where: {
-          id: modelId,
-          userId: user.id
-        }
-      });
-    } else {
-      // 如果未指定modelId，获取默认模型
-      modelConfig = await prisma.chatModel.findFirst({
-        where: {
-          userId: user.id,
-          isDefault: true
-        }
-      });
-      
-      // 如果没有默认模型，获取第一个模型
-      if (!modelConfig) {
-        modelConfig = await prisma.chatModel.findFirst({
-          where: {
-            userId: user.id
-          },
-          orderBy: {
-            createdAt: 'asc'
-          }
-        });
+      if (model) {
+        console.log('从数据库找到模型:', model.name);
+        return model;
       }
     }
     
-    if (modelConfig) {
-      console.log('找到模型配置:', modelConfig.name);
-    } else {
-      console.log('未找到模型配置');
+    // 如果是local-default或在数据库中未找到，从本地配置查找
+    const localModel = config.aiModel.models.find(model => 
+      model.name === modelId || (modelId === 'local-default' && model.isDefault)
+    );
+    
+    if (localModel) {
+      console.log('使用本地配置的模型:', localModel.name);
+      return {
+        id: 'local-model',
+        name: localModel.name,
+        apiKey: localModel.apiKey,
+        endpoint: localModel.endpoint,
+        model: localModel.model,
+        isDefault: localModel.isDefault,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: 'local'
+      };
     }
     
-    return modelConfig;
+    console.log('未找到指定的模型配置');
+    return null;
   } catch (error) {
     console.error('获取模型配置失败:', error);
     return null;
@@ -220,21 +131,30 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // 根据不同的模型配置构建请求
-    // 确保API端点URL是完整的
+    // 检查是否使用本地模型
     let apiUrl = modelConfig.endpoint;
-    // 如果endpoint不包含'/v1/chat/completions'，则添加
+    
+    // 如果配置了使用本地模型且endpoint为空，使用本地模型端点
+    if (config.aiModel.useLocalModel && (!modelConfig.endpoint || modelConfig.endpoint === '')) {
+      console.log('使用本地模型端点');
+      apiUrl = config.aiModel.localModelEndpoint;
+    }
+    
+    // 确保API端点URL是完整的
     if (!apiUrl.includes('/chat/completions')) {
       apiUrl = apiUrl.endsWith('/') ? `${apiUrl}v1/chat/completions` : `${apiUrl}/v1/chat/completions`;
     }
     
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${modelConfig.apiKey}`
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
     };
     
+    // 只有当API密钥不为空时才添加Authorization头
+    if (modelConfig.apiKey && modelConfig.apiKey.trim() !== '') {
+      headers['Authorization'] = `Bearer ${modelConfig.apiKey}`;
+    }
+    
     // 构建请求体 - 支持各类通用LLM API格式
-    // 这里假设使用类OpenAI格式的API
     const requestBody = {
       model: modelConfig.model,
       messages,
@@ -287,42 +207,32 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const getDefault = url.searchParams.get('default') === 'true';
     
-    // 获取当前用户
-    const session = await getServerSession();
-    const userEmail = session?.user?.email;
-    
-    if (!userEmail) {
-      return NextResponse.json(
-        { success: false, message: '未登录' },
-        { status: 401 }
-      );
-    }
-    
-    // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail }
-    });
-    
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: '找不到用户' },
-        { status: 404 }
-      );
-    }
-    
-    // 获取用户的模型配置
-    const configs = await prisma.chatModel.findMany({
-      where: {
-        userId: user.id
-      },
+    // 从数据库获取用户模型配置
+    const dbConfigs = await prisma.chatModel.findMany({
       orderBy: {
         createdAt: 'desc'
       }
     });
     
+    // 合并本地配置文件中的模型配置
+    const localModels = config.aiModel.models.map(model => ({
+      id: `local-${model.name.replace(/\s+/g, '-').toLowerCase()}`,
+      name: model.name,
+      apiKey: model.apiKey,
+      endpoint: model.endpoint,
+      model: model.model,
+      isDefault: model.isDefault,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 'local'
+    }));
+    
+    // 合并数据库和本地配置的模型
+    const allConfigs = [...dbConfigs, ...localModels];
+    
     // 如果要获取默认模型
     if (getDefault) {
-      const defaultConfig = configs.find(config => config.isDefault) || (configs.length > 0 ? configs[0] : null);
+      const defaultConfig = allConfigs.find(config => config.isDefault) || (allConfigs.length > 0 ? allConfigs[0] : null);
       if (!defaultConfig) {
         return NextResponse.json(
           { success: false, message: '没有配置默认模型' },
@@ -333,12 +243,12 @@ export async function GET(request: NextRequest) {
       const { apiKey, ...safeConfig } = defaultConfig;
       return NextResponse.json({ 
         success: true, 
-        data: { ...safeConfig, hasApiKey: true } 
+        data: { ...safeConfig, hasApiKey: !!apiKey } 
       });
     }
     
     // 返回所有模型的公开信息（不包含API密钥）
-    const publicConfigs = configs.map(({ apiKey, ...rest }) => ({
+    const publicConfigs = allConfigs.map(({ apiKey, ...rest }) => ({
       ...rest,
       hasApiKey: !!apiKey
     }));

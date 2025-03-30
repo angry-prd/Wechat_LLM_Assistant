@@ -9,7 +9,10 @@
     "dev:reset": "node scripts/clean-restart.js",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup": "node scripts/setup.js",
+    "init-db": "npx prisma migrate dev --name init",
+    "reset-db": "rm -f prisma/dev.db && npm run init-db"
   },
   "dependencies": {
     "@doocs/md-cli": "^0.0.5",
