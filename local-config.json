@@ -1,0 +1,32 @@
+{
+  "appName": "微信公众号AI助手",
+  "port": 3000,
+  "admin": {
+    "username": "admin",
+    "password": "admin123",
+    "email": "admin@example.com"
+  },
+  "aiModel": {
+    "useLocalModel": false,
+    "localModelEndpoint": "http://localhost:1234/v1/chat/completions",
+    "models": [
+      {
+        "name": "默认AI模型",
+        "apiKey": "",
+        "endpoint": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-3.5-turbo",
+        "isDefault": true
+      }
+    ]
+  },
+  "wechat": {
+    "appId": "",
+    "appSecret": "",
+    "token": "",
+    "encodingAESKey": ""
+  },
+  "articleDefaults": {
+    "author": "微信公众号作者",
+    "copyright": "© 2025 版权所有"
+  }
+}

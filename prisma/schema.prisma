@@ -7,36 +7,86 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+// AI模型配置
 model ChatModel {
   id        String   @id @default(uuid())
-  name      String
-  apiKey    String
-  endpoint  String
-  model     String
+  name      String   // 模型名称
+  apiKey    String   // API密钥
+  endpoint  String   // API端点
+  model     String   // 具体的模型标识符
   isDefault Boolean  @default(false)
+  userId    String   @default("default")
+  provider  String   @default("openai") // 提供商：openai, azure, anthropic等
+  maxTokens Int?     // 最大token数
+  temperature Float? @default(0.7) // 温度参数
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("chat_models")
 }
 
+// 文章/推文
 model Article {
-  id        String   @id @default(uuid())
-  title     String
-  content   String
-  status    String?  @default("草稿")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  title       String   // 文章标题
+  content     String   // 文章内容
+  status      String   @default("草稿") // 状态：草稿、已发布、已删除
+  summary     String?  // 文章摘要
+  tags        String?  // 标签，用逗号分隔
+  coverImage  String?  // 封面图片URL
+  publishedAt DateTime? // 发布时间
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  viewCount   Int      @default(0) // 查看次数
+  likeCount   Int      @default(0) // 点赞次数
+  sourceType  String   @default("manual") // 来源类型：manual(手动), ai(AI生成)
+  sourceId    String?  // 如果是AI生成，关联的聊天记录ID
 
   @@map("articles")
 }
 
+// 聊天记录
 model ChatHistory {
   id        String   @id @default(uuid())
-  title     String
-  messages  String
+  title     String   // 对话标题
+  messages  String   // 对话内容，JSON字符串
+  userId    String   @default("default")
+  modelId   String?  // 使用的模型ID
+  summary   String?  // 对话摘要
+  tags      String?  // 标签，用逗号分隔
+  category  String   @default("general") // 对话分类：general, article, other
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tokenCount Int     @default(0) // 使用的token数量
+  status    String   @default("active") // 状态：active, archived, deleted
+
+  @@map("chat_histories")
+}
+
+// 微信配置
+model WechatConfig {
+  id          String   @id @default(uuid())
+  appId       String   // 微信公众号AppID
+  appSecret   String   // 微信公众号AppSecret
+  token       String?  // 微信接口验证Token
+  encodingKey String?  // 消息加解密Key
+  accessToken String?  // 当前访问令牌
+  expiresAt   DateTime? // 访问令牌过期时间
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("wechat_configs")
+}
+
+// 系统设置
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique // 配置键
+  value     String   // 配置值
+  category  String   @default("general") // 配置分类
+  desc      String?  // 配置说明
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("chat_histories")
+  @@map("system_configs")
 }

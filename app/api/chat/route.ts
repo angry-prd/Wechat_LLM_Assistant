@@ -109,6 +109,41 @@ async function getModelConfig(modelId: string | undefined) {
   }
 }
 
+// 确保消息是交替的
+function normalizeMessages(messages: Message[]): Message[] {
+  const result: Message[] = [];
+  let lastRole: string | null = null;
+  
+  for (const message of messages) {
+    // 如果是第一条消息且不是用户消息，添加一个系统消息
+    if (result.length === 0 && message.role !== 'user') {
+      result.push({
+        role: 'system',
+        content: '你是一个有帮助的AI助手。'
+      });
+    }
+    
+    // 如果当前消息与上一条消息的角色相同，合并内容
+    if (lastRole === message.role) {
+      const lastMessage = result[result.length - 1];
+      lastMessage.content += '\n' + message.content;
+    } else {
+      result.push(message);
+      lastRole = message.role;
+    }
+  }
+  
+  // 如果最后一条消息不是用户消息，添加一个空的用户消息
+  if (result.length > 0 && result[result.length - 1].role !== 'user') {
+    result.push({
+      role: 'user',
+      content: '请继续。'
+    });
+  }
+  
+  return result;
+}
+
 // POST 处理聊天请求
 export async function POST(request: NextRequest) {
   try {
@@ -154,16 +189,20 @@ export async function POST(request: NextRequest) {
       headers['Authorization'] = `Bearer ${modelConfig.apiKey}`;
     }
     
+    // 规范化消息，确保是交替的
+    const normalizedMessages = normalizeMessages(messages);
+    
     // 构建请求体 - 支持各类通用LLM API格式
     const requestBody = {
       model: modelConfig.model,
-      messages,
+      messages: normalizedMessages,
       temperature,
       max_tokens
     };
     
     console.log('发送请求到AI服务:', apiUrl);
     console.log('使用模型:', modelConfig.name);
+    console.log('规范化后的消息:', normalizedMessages);
     
     // 发送请求到模型API
     const response = await fetch(apiUrl, {

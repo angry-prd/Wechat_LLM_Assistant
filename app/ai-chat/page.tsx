@@ -16,14 +16,36 @@ import { useRouter } from 'next/navigation';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  timestamp: number;
+  status?: 'sending' | 'success' | 'error';
+  error?: string;
+  replyTo?: {
+    content: string;
+    role: 'user' | 'assistant';
+  };
+  editHistory?: {
+    content: string;
+    timestamp: number;
+  }[];
+  isStarred?: boolean;
+  tags?: string[];
+  reactions?: {
+    type: string;
+    timestamp: number;
+  }[];
 }
 
 interface ChatHistory {
   id: string;
   title: string;
+  topic?: string; // 聊天主题
+  description?: string; // 聊天描述
   messages: Message[];
   createdAt: string;
   updatedAt: string;
+  isStarred?: boolean;
+  tags?: string[];
+  category?: string;
 }
 
 interface ModelConfig {
@@ -44,19 +66,33 @@ interface CodeProps {
   [key: string]: any;
 }
 
+// 添加快捷键配置
+const KEYBOARD_SHORTCUTS = {
+  SEND: { key: 'Enter', description: '发送消息' },
+  NEW_LINE: { key: 'Shift + Enter', description: '换行' },
+  BOLD: { key: 'Ctrl/Cmd + B', description: '加粗' },
+  ITALIC: { key: 'Ctrl/Cmd + I', description: '斜体' },
+  CODE: { key: 'Ctrl/Cmd + K', description: '代码' },
+  NEW_CHAT: { key: 'Ctrl/Cmd + N', description: '新建聊天' },
+  SAVE: { key: 'Ctrl/Cmd + S', description: '保存聊天' },
+  SEARCH: { key: 'Ctrl/Cmd + F', description: '搜索' },
+  TOGGLE_SIDEBAR: { key: 'Ctrl/Cmd + \\', description: '切换侧边栏' },
+  STAR_MESSAGE: { key: 'Ctrl/Cmd + D', description: '收藏消息' },
+};
+
 export default function AIChat() {
-  const [messages, setMessages] = useState([] as Message[]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null as string | null);
-  const [chatHistories, setChatHistories] = useState([] as ChatHistory[]);
+  const [error, setError] = useState<string | null>(null);
+  const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [currentChatId, setCurrentChatId] = useState(null as string | null);
-  const [selectedModel, setSelectedModel] = useState(null as ModelConfig | null);
-  const [hasModels, setHasModels] = useState(null as boolean | null);
-  const messagesEndRef = useRef(null as HTMLDivElement | null);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<ModelConfig | null>(null);
+  const [hasModels, setHasModels] = useState<boolean | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([] as File[]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const router = useRouter();
 
   // 滚动到消息列表底部 - 修改为只滚动消息容器
@@ -71,6 +107,63 @@ export default function AIChat() {
         // 如果无法获取到容器，才使用scrollIntoView
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
+    }
+  };
+
+  // 加载聊天历史
+  const loadChatHistory = (history: ChatHistory) => {
+    try {
+      let parsedMessages: Message[] = [];
+      
+      // 如果messages是字符串，尝试解析
+      if (typeof history.messages === 'string') {
+        try {
+          parsedMessages = JSON.parse(history.messages);
+        } catch (error) {
+          console.error('解析消息失败:', error);
+          toast.error('无法加载聊天历史：消息格式错误');
+          return;
+        }
+      } else if (Array.isArray(history.messages)) {
+        parsedMessages = history.messages;
+      } else {
+        console.error('无效的消息格式:', history.messages);
+        toast.error('无法加载聊天历史：消息格式错误');
+        return;
+      }
+      
+      // 验证每条消息的格式
+      if (!parsedMessages.every(msg => 
+        msg && typeof msg === 'object' && 
+        'role' in msg && 'content' in msg &&
+        typeof msg.role === 'string' && 
+        typeof msg.content === 'string' &&
+        (msg.role === 'user' || msg.role === 'assistant')
+      )) {
+        console.error('消息格式不正确:', parsedMessages);
+        toast.error('无法加载聊天历史：消息格式不正确');
+        return;
+      }
+      
+      // 更新状态
+      setMessages(parsedMessages);
+      setCurrentChatId(history.id);
+      setInput('');
+      
+      // 更新URL
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('id', history.id);
+        window.history.pushState({}, '', url.toString());
+      }
+      
+      // 滚动到底部
+      setTimeout(scrollToBottom, 100);
+      
+      console.log('成功加载聊天历史:', history.id, '消息数:', parsedMessages.length);
+    } catch (error) {
+      console.error('加载聊天历史失败:', error);
+      toast.error('加载聊天历史失败');
     }
   };
 
@@ -99,23 +192,34 @@ export default function AIChat() {
       if (data.success) {
         console.log(`成功获取${data.histories.length}条聊天历史`);
         
-        // 处理每个历史记录中的messages，确保它是对象而不是字符串
+        // 处理每个历史记录中的messages
         const processedHistories = data.histories.map((history: any) => {
-          let processedMessages: Message[];
+          let parsedMessages: Message[] = [];
           try {
-            // 尝试解析messages字段，如果它是JSON字符串
             if (typeof history.messages === 'string') {
-              processedMessages = JSON.parse(history.messages);
-            } else {
-              processedMessages = history.messages;
+              parsedMessages = JSON.parse(history.messages);
+            } else if (Array.isArray(history.messages)) {
+              parsedMessages = history.messages;
             }
-          } catch (e) {
-            console.error('解析消息失败:', e);
-            processedMessages = [];
+            
+            // 验证消息格式
+            if (!parsedMessages.every(msg => 
+              msg && typeof msg === 'object' && 
+              'role' in msg && 'content' in msg &&
+              typeof msg.role === 'string' && 
+              typeof msg.content === 'string'
+            )) {
+              console.error('消息格式不正确:', parsedMessages);
+              parsedMessages = [];
+            }
+          } catch (error) {
+            console.error('解析消息失败:', error);
+            parsedMessages = [];
           }
+          
           return {
             ...history,
-            messages: processedMessages
+            messages: parsedMessages
           };
         });
         
@@ -124,8 +228,8 @@ export default function AIChat() {
         console.warn('获取聊天历史API返回失败状态:', data.message);
         setChatHistories([]);
       }
-    } catch (err) {
-      console.error('获取聊天历史出错:', err);
+    } catch (error) {
+      console.error('获取聊天历史出错:', error);
       toast.error('获取聊天历史失败');
       setChatHistories([]);
     } finally {
@@ -215,8 +319,33 @@ export default function AIChat() {
             .then(response => response.json())
             .then(data => {
               if (data.success && data.chatHistory) {
-                setMessages(data.chatHistory.messages);
-                setCurrentChatId(data.chatHistory.id);
+                // 确保消息是数组格式
+                let parsedMessages: Message[] = [];
+                try {
+                  if (typeof data.chatHistory.messages === 'string') {
+                    parsedMessages = JSON.parse(data.chatHistory.messages);
+                  } else if (Array.isArray(data.chatHistory.messages)) {
+                    parsedMessages = data.chatHistory.messages;
+                  }
+                  
+                  // 验证消息格式
+                  if (!parsedMessages.every(msg => 
+                    msg && typeof msg === 'object' && 
+                    'role' in msg && 'content' in msg &&
+                    typeof msg.role === 'string' && 
+                    typeof msg.content === 'string'
+                  )) {
+                    console.error('消息格式不正确:', parsedMessages);
+                    handleNewChat();
+                    return;
+                  }
+                  
+                  setMessages(parsedMessages);
+                  setCurrentChatId(data.chatHistory.id);
+                } catch (error) {
+                  console.error('解析消息失败:', error);
+                  handleNewChat();
+                }
               } else {
                 // 如果找不到指定的聊天，重置为新聊天
                 handleNewChat();
@@ -253,7 +382,24 @@ export default function AIChat() {
       return;
     }
 
-    const userMessage: Message = { role: 'user', content: input };
+    // 检查是否是引用回复
+    let replyTo = null;
+    const quoteMatch = input.match(/^>(.*?)\n\n([\s\S]*)$/);
+    if (quoteMatch) {
+      replyTo = {
+        content: quoteMatch[1].trim(),
+        role: messages.find(m => m.content.includes(quoteMatch[1].trim()))?.role || 'assistant'
+      };
+    }
+
+    const userMessage: Message = { 
+      role: 'user', 
+      content: quoteMatch ? quoteMatch[2].trim() : input.trim(),
+      timestamp: Date.now(),
+      status: 'sending',
+      replyTo
+    };
+    
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput('');
@@ -316,48 +462,38 @@ export default function AIChat() {
       const data = await response.json();
       console.log('收到API响应:', data);
       
-      // 从API响应中提取助手消息
-      let assistantMessage: Message | null = null;
-      if (data.success && data.data) {
-        // OpenAI格式处理
-        if (data.data.choices && data.data.choices[0]?.message) {
-          assistantMessage = {
-            role: 'assistant',
-            content: data.data.choices[0].message.content
-          };
-        } 
-        // 通用格式处理，适应其他可能的API响应
-        else if (data.data.message) {
-          assistantMessage = data.data.message;
-        } 
-        // 直接使用content字段
-        else if (data.data.content) {
-          assistantMessage = {
-            role: 'assistant',
-            content: data.data.content
-          };
-        }
-      }
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.data.content || data.data.choices[0].message.content,
+        timestamp: Date.now(),
+        status: 'success'
+      };
       
-      if (!assistantMessage) {
-        throw new Error('无法解析API响应');
-      }
+      // 更新用户消息状态
+      const finalMessages = updatedMessages.map(msg => 
+        msg === userMessage ? { ...msg, status: 'success' } : msg
+      );
       
-      const newMessages = [...updatedMessages, assistantMessage];
-      setMessages(newMessages);
+      setMessages([...finalMessages, assistantMessage]);
 
       // 如果有当前会话ID，更新会话
       if (currentChatId) {
-        updateChatHistory(currentChatId, newMessages);
+        updateChatHistory(currentChatId, finalMessages, generateTitle(finalMessages));
       } 
       // 如果之前没创建成功，则在AI回复后创建新的聊天历史
       else {
-        saveChatHistory(newMessages);
+        saveChatHistory(finalMessages);
       }
     } catch (err: any) {
       console.error('发送消息错误:', err);
+      // 更新用户消息状态为错误
+      const errorMessages = updatedMessages.map(msg => 
+        msg === userMessage ? { ...msg, status: 'error', error: err.message } : msg
+      );
+      setMessages(errorMessages);
       setError(err.message || '消息发送失败');
       toast.error(err.message || '消息发送失败');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -536,30 +672,11 @@ export default function AIChat() {
     }
   };
 
-  // 加载历史聊天
-  const loadChatHistory = (history: ChatHistory) => {
-    // 确保messages是数组格式
-    let processedMessages: Message[];
-    try {
-      if (typeof history.messages === 'string') {
-        processedMessages = JSON.parse(history.messages);
-      } else {
-        processedMessages = history.messages;
-      }
-    } catch (e) {
-      console.error('解析消息失败:', e);
-      processedMessages = [];
-      toast.error('消息格式错误，无法加载聊天历史');
-    }
-    
-    setMessages(processedMessages);
-    setCurrentChatId(history.id);
-  };
-
   // 创建新聊天
   const handleNewChat = () => {
     setMessages([]);
     setCurrentChatId(null);
+    setInput('');
     
     // 更新URL，移除可能存在的id参数
     if (typeof window !== 'undefined') {
@@ -791,136 +908,371 @@ export default function AIChat() {
                   key={index}
                   className={`max-w-3xl mx-auto ${
                     message.role === 'user'
-                      ? 'text-right'
-                      : ''
+                      ? 'flex justify-end'
+                      : 'flex justify-start'
                   }`}
                 >
-                  <div className={`inline-block max-w-[85%] px-4 py-3 rounded-lg relative ${
+                  <div className={`relative group max-w-[85%] px-4 py-3 rounded-2xl ${
                     message.role === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm shadow-sm'
                   }`}>
-                    <ReactMarkdown
-                      className="prose dark:prose-invert max-w-none"
-                      components={{
-                        code({ node, inline, className, children, ...props }: CodeProps) {
-                          const match = /language-(\w+)/.exec(className || '');
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              style={vscDarkPlus as any}
-                              language={match[1]}
-                              PreTag="div"
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        },
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
-                    
-                    {/* AI回复消息的操作按钮 */}
-                    {message.role === 'assistant' && (
-                      <div className="flex mt-2 space-x-2 opacity-70 hover:opacity-100 transition-opacity">
-                        <button 
-                          className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded flex items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                          onClick={() => copyToClipboard(message.content)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                          复制
-                        </button>
-                        <button 
-                          className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded flex items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                          onClick={() => regenerateResponse(index)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          重新生成
-                        </button>
-                        <button 
-                          className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-                          onClick={() => createArticleFromResponse(message.content)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          创建推文
-                        </button>
+                    {/* 消息状态指示 */}
+                    {message.role === 'user' && (
+                      <div className="absolute -top-5 right-0 text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+                        <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+                        {message.status === 'sending' && (
+                          <span className="flex items-center text-yellow-500">
+                            <svg className="animate-spin h-3 w-3 mr-1" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            发送中
+                          </span>
+                        )}
+                        {message.status === 'success' && (
+                          <span className="text-green-500">
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                        {message.status === 'error' && (
+                          <span className="text-red-500 flex items-center" title={message.error}>
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </span>
+                        )}
                       </div>
                     )}
+                    
+                    {/* AI消息时间显示 */}
+                    {message.role === 'assistant' && (
+                      <div className="absolute -top-5 left-0 text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </div>
+                    )}
+
+                    {/* 消息内容 */}
+                    <div className="relative">
+                      {/* 标签和收藏 */}
+                      <div className="absolute -top-8 left-0 flex items-center space-x-2">
+                        {message.tags && message.tags.map((tag, tagIndex) => (
+                          <span
+                            key={tagIndex}
+                            className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center group"
+                          >
+                            #{tag}
+                            <button
+                              className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeMessageTag(index, tag)}
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </span>
+                        ))}
+                        <button
+                          className={`text-xs p-1 rounded-full ${
+                            message.isStarred
+                              ? 'text-yellow-500 hover:text-yellow-600'
+                              : 'text-gray-400 hover:text-gray-500'
+                          }`}
+                          onClick={() => toggleMessageStar(index)}
+                          title={message.isStarred ? '取消收藏' : '收藏消息'}
+                        >
+                          <svg className="w-4 h-4" fill={message.isStarred ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* 编辑历史按钮 */}
+                      {message.editHistory && message.editHistory.length > 0 && (
+                        <div className="absolute -top-8 right-0">
+                          <button
+                            className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center space-x-1"
+                            onClick={() => {
+                              // 显示编辑历史对话框
+                              // TODO: 实现编辑历史对话框
+                            }}
+                          >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{message.editHistory.length}次编辑</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* 消息内容 */}
+                      <ReactMarkdown
+                        className="prose dark:prose-invert max-w-none break-words"
+                        components={{
+                          code({ node, inline, className, children, ...props }: CodeProps) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return !inline && match ? (
+                              <div className="relative group">
+                                <div className="absolute -top-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    className="text-xs bg-gray-700 text-gray-200 px-2 py-0.5 rounded hover:bg-gray-600"
+                                    onClick={() => copyToClipboard(String(children))}
+                                  >
+                                    复制代码
+                                  </button>
+                                </div>
+                                <SyntaxHighlighter
+                                  style={vscDarkPlus as any}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  className="rounded-md !bg-gray-900 !p-4 !my-2"
+                                  showLineNumbers={true}
+                                  {...props}
+                                >
+                                  {String(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                              </div>
+                            ) : (
+                              <code className={`${className} bg-gray-200 dark:bg-gray-700 rounded px-1 py-0.5`} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+
+                      {/* 快捷操作按钮 */}
+                      <div className={`flex mt-2 space-x-2 opacity-0 group-hover:opacity-100 transition-opacity ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}>
+                        {message.role === 'user' ? (
+                          <>
+                            <button 
+                              className="text-xs bg-blue-400 hover:bg-blue-300 text-white px-2 py-1 rounded flex items-center transition-colors"
+                              onClick={() => {
+                                setInput(message.content);
+                                const textarea = document.querySelector('textarea');
+                                if (textarea) {
+                                  textarea.focus();
+                                  textarea.scrollIntoView({ behavior: 'smooth' });
+                                }
+                              }}
+                              title="编辑并重新发送此消息"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              编辑
+                            </button>
+                            <button 
+                              className="text-xs bg-blue-400 hover:bg-blue-300 text-white px-2 py-1 rounded flex items-center transition-colors"
+                              onClick={() => {
+                                const newTag = prompt('请输入标签名称（不含#号）');
+                                if (newTag) {
+                                  addMessageTag(index, newTag.trim());
+                                }
+                              }}
+                              title="为此消息添加标签"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                              </svg>
+                              添加标签
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {/* AI回复的按钮 */}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))
             )}
               {isLoading && (
-              <div className="max-w-3xl mx-auto">
-                <div className="inline-block max-w-[85%] px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              <div className="max-w-3xl mx-auto flex justify-start">
+                <div className="relative max-w-[85%] px-4 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm shadow-sm">
+                  {/* 小尾巴 */}
+                  <div className="absolute bottom-[6px] left-0 transform -translate-x-[98%]">
+                    <div className="w-2 h-2 transform -rotate-45 bg-gray-100 dark:bg-gray-800"></div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                    </div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">AI正在思考...</span>
                   </div>
                 </div>
               </div>
             )}
             {error && (
-              <div className="max-w-3xl mx-auto">
-                <div className="inline-block max-w-[85%] px-4 py-3 rounded-lg bg-red-50 text-red-700">
-                  <p className="font-medium">发生错误</p>
-                  <p className="text-sm">{error}</p>
+              <div className="max-w-3xl mx-auto flex justify-start">
+                <div className="relative max-w-[85%] px-4 py-3 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
+                  {/* 小尾巴 */}
+                  <div className="absolute bottom-[6px] left-0 transform -translate-x-[98%]">
+                    <div className="w-2 h-2 transform -rotate-45 bg-red-50 dark:bg-red-900/20"></div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <div className="font-medium">发生错误</div>
+                      <div className="text-sm mt-1">{error}</div>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
               <div ref={messagesEndRef} />
             </div>
           </div>
 
         {/* 输入区域 - 仿ChatGPT风格 */}
-        <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
           <div className="max-w-3xl mx-auto relative">
-            <div className="relative rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm overflow-hidden bg-white dark:bg-gray-700">
-            <textarea
-                className="w-full px-4 py-3 border-0 focus:outline-none focus:ring-0 dark:bg-gray-700 dark:text-white resize-none min-h-[56px] max-h-[200px] text-base"
-                placeholder="输入你的问题..."
+            <div className="relative rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm overflow-hidden bg-white dark:bg-gray-700 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all duration-200">
+              <textarea
+                className="w-full px-4 py-3 border-0 focus:outline-none focus:ring-0 dark:bg-gray-700 dark:text-white resize-none text-base placeholder-gray-400 dark:placeholder-gray-500"
+                placeholder="输入消息，Shift + Enter 换行，Enter 发送..."
                 rows={1}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  // 自动调整高度
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(200, e.target.scrollHeight) + 'px';
+                }}
+                onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                  // Ctrl/Cmd + B 加粗
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    const start = e.currentTarget.selectionStart;
+                    const end = e.currentTarget.selectionEnd;
+                    const newText = input.slice(0, start) + '**' + input.slice(start, end) + '**' + input.slice(end);
+                    setInput(newText);
+                  }
+                  // Ctrl/Cmd + I 斜体
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                    e.preventDefault();
+                    const start = e.currentTarget.selectionStart;
+                    const end = e.currentTarget.selectionEnd;
+                    const newText = input.slice(0, start) + '*' + input.slice(start, end) + '*' + input.slice(end);
+                    setInput(newText);
+                  }
+                  // Ctrl/Cmd + K 代码
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    const start = e.currentTarget.selectionStart;
+                    const end = e.currentTarget.selectionEnd;
+                    const newText = input.slice(0, start) + '`' + input.slice(start, end) + '`' + input.slice(end);
+                    setInput(newText);
+                  }
+                }}
                 disabled={isLoading || !hasModels}
-                style={{ lineHeight: '1.5' }}
               />
               
               <div className="absolute right-2 bottom-2 flex items-center space-x-2">
+                {/* 快捷操作按钮 */}
+                <div className="flex space-x-1">
+                  <button
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => {
+                      const start = document.querySelector('textarea')?.selectionStart || 0;
+                      const end = document.querySelector('textarea')?.selectionEnd || 0;
+                      const newText = input.slice(0, start) + '**' + input.slice(start, end) + '**' + input.slice(end);
+                      setInput(newText);
+                    }}
+                    title="加粗 (Ctrl/Cmd + B)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12h8a4 4 0 100-8H6v8zm0 0h8a4 4 0 110 8H6v-8z" />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => {
+                      const start = document.querySelector('textarea')?.selectionStart || 0;
+                      const end = document.querySelector('textarea')?.selectionEnd || 0;
+                      const newText = input.slice(0, start) + '*' + input.slice(start, end) + '*' + input.slice(end);
+                      setInput(newText);
+                    }}
+                    title="斜体 (Ctrl/Cmd + I)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => {
+                      const start = document.querySelector('textarea')?.selectionStart || 0;
+                      const end = document.querySelector('textarea')?.selectionEnd || 0;
+                      const newText = input.slice(0, start) + '`' + input.slice(start, end) + '`' + input.slice(end);
+                      setInput(newText);
+                    }}
+                    title="代码 (Ctrl/Cmd + K)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </button>
+                </div>
+
                 {/* 附件上传按钮 */}
                 <button
-                  className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                   onClick={toggleAttachment}
                   disabled={isLoading}
                   title="上传附件"
                 >
-                  <FaPaperclip size={16} />
+                  <FaPaperclip className="w-4 h-4" />
                 </button>
-                
+
                 {/* 发送按钮 */}
-            <button
-                  className={`p-2 rounded-md ${input.trim() && !isLoading && hasModels ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-              onClick={sendMessage}
+                <button
+                  className={`p-2 rounded-md ${
+                    input.trim() && !isLoading && hasModels
+                      ? 'bg-blue-500 text-white hover:bg-blue-600'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  } transition-colors`}
+                  onClick={sendMessage}
                   disabled={!input.trim() || isLoading || !hasModels}
+                  title="发送消息 (Enter)"
                 >
-                  <FaPaperPlane size={16} />
+                  <FaPaperPlane className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            
+
+            {/* 快捷键提示 */}
+            <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex space-x-4">
+                <span>Enter 发送</span>
+                <span>Shift + Enter 换行</span>
+                <span>Ctrl/Cmd + B 加粗</span>
+                <span>Ctrl/Cmd + I 斜体</span>
+                <span>Ctrl/Cmd + K 代码</span>
+              </div>
+              <div>
+                {isLoading ? '正在思考...' : 'AI大模型可能会犯错，请检查重要信息'}
+              </div>
+            </div>
+
             {/* 附件上传区域 */}
             {isAttachmentOpen && (
               <div className="mt-2 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
@@ -967,10 +1319,6 @@ export default function AIChat() {
                 )}
               </div>
             )}
-            
-            <div className="text-xs text-center text-gray-500 mt-2">
-              AI大模型也可能会犯错。检查重要信息的准确性。
-            </div>
           </div>
         </div>
       </div>
