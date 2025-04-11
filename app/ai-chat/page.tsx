@@ -7,7 +7,6 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'react-hot-toast';
-import ClientAuthCheck from '@/components/ClientAuthCheck';
 import ChatHistoryList from '@/components/ChatHistoryList';
 import ModelSelector from '@/components/ModelSelector';
 import ModelSetupGuide from '@/components/ModelSetupGuide';
@@ -80,28 +79,16 @@ export default function AIChat() {
     try {
       setIsHistoryLoading(true);
       
-      // 获取当前用户ID
-      const currentUser = getCurrentUser();
-      if (!currentUser || !currentUser.id) {
-        console.warn('未找到用户信息，无法加载聊天历史');
-        setChatHistories([]);
-        return;
-      }
-      
-      console.log('开始获取聊天历史, 用户ID:', currentUser.id);
-      
       // 添加时间戳参数防止缓存
       const timestamp = new Date().getTime();
-      const url = `/api/chat/history?t=${timestamp}&userId=${currentUser.id}`;
+      const url = `/api/chat/history?t=${timestamp}`;
       
       const response = await fetch(url, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        credentials: 'include' // 确保发送cookies
+          'Expires': '0'
+        }
       });
       
       if (!response.ok) {
@@ -152,25 +139,7 @@ export default function AIChat() {
       console.log('开始检查模型配置');
       // 添加时间戳防止缓存
       const timestamp = new Date().getTime();
-      
-      // 获取用户ID，如果存储在localStorage中
-      let userId = null;
-      if (typeof window !== 'undefined') {
-        const userDataStr = localStorage.getItem('user');
-        if (userDataStr) {
-          try {
-            const userData = JSON.parse(userDataStr);
-            userId = userData.id;
-            console.log('从localStorage获取用户ID:', userId);
-          } catch (e) {
-            console.error('解析用户数据失败:', e);
-          }
-        }
-      }
-      
-      const url = userId 
-        ? `/api/chat-models?t=${timestamp}&userId=${userId}` 
-        : `/api/chat-models?t=${timestamp}`;
+      const url = `/api/chat-models?t=${timestamp}`;
       
       console.log('请求模型配置URL:', url);
       
@@ -180,18 +149,12 @@ export default function AIChat() {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0'
-        },
-        credentials: 'include' // 确保发送cookies
+        }
       });
       
       console.log('模型检查API响应状态:', response.status);
       
       if (!response.ok) {
-        if (response.status === 401) {
-          console.log('用户未登录，无法获取模型');
-          setHasModels(false);
-          return;
-        }
         throw new Error('获取模型配置失败');
       }
       
@@ -780,239 +743,237 @@ export default function AIChat() {
   };
 
   return (
-    <ClientAuthCheck>
-      <div className="flex h-[calc(100vh-var(--navbar-height))] max-h-[calc(100vh-var(--navbar-height))] overflow-hidden">
-        {/* 聊天历史侧边栏 - 仿ChatGPT风格 */}
-        <div className="w-[260px] border-r border-gray-200 dark:border-gray-700 h-full flex flex-col bg-gray-50 dark:bg-gray-800">
-          <ChatHistoryList 
-            chatHistories={chatHistories} 
-            isLoading={isHistoryLoading} 
-            onSelectHistory={loadChatHistory}
-            onNewChat={handleNewChat}
-            onDeleteHistory={deleteChatHistory}
-            currentChatId={currentChatId}
-          />
-        </div>
+    <div className="flex h-[calc(100vh-var(--navbar-height))] max-h-[calc(100vh-var(--navbar-height))] overflow-hidden">
+      {/* 聊天历史侧边栏 - 仿ChatGPT风格 */}
+      <div className="w-[260px] border-r border-gray-200 dark:border-gray-700 h-full flex flex-col bg-gray-50 dark:bg-gray-800">
+        <ChatHistoryList 
+          chatHistories={chatHistories} 
+          isLoading={isHistoryLoading} 
+          onSelectHistory={loadChatHistory}
+          onNewChat={handleNewChat}
+          onDeleteHistory={deleteChatHistory}
+          currentChatId={currentChatId}
+        />
+      </div>
 
-        {/* 主聊天区域 - 仿ChatGPT风格 */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-gray-900">
-          {/* 顶部模型选择栏 */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
-              <div className="flex items-center space-x-2">
-              <ModelSelector 
-                selectedModel={selectedModel} 
-                onSelectModel={handleModelSelect} 
-              />
-              </div>
+      {/* 主聊天区域 - 仿ChatGPT风格 */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-gray-900">
+        {/* 顶部模型选择栏 */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
             <div className="flex items-center space-x-2">
-              {/* 可以添加其他功能按钮，如全屏、主题切换等 */}
+            <ModelSelector 
+              selectedModel={selectedModel} 
+              onSelectModel={handleModelSelect} 
+            />
             </div>
+          <div className="flex items-center space-x-2">
+            {/* 可以添加其他功能按钮，如全屏、主题切换等 */}
           </div>
-          
-          {/* 消息内容区域 - 固定高度并启用滚动 */}
-          <div className="flex-1 overflow-hidden relative">
-            <div className="absolute inset-0 overflow-y-auto px-4 py-5 space-y-5 scroll-smooth chat-messages-container" style={{ height: '100%', overscrollBehavior: 'contain' }}>
-              {messages.length === 0 ? (
-                hasModels ? (
-                  <div className="flex flex-col items-center justify-center h-[70%] text-center">
-                    <h2 className="text-2xl font-bold mb-3">有什么可以帮忙的?</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4 text-base max-w-md">
-                      开始一个新的对话，或从左侧历史记录中选择一个聊天
-                    </p>
-                  </div>
-                ) : (
-                  <ModelSetupGuide />
-                )
+        </div>
+        
+        {/* 消息内容区域 - 固定高度并启用滚动 */}
+        <div className="flex-1 overflow-hidden relative">
+          <div className="absolute inset-0 overflow-y-auto px-4 py-5 space-y-5 scroll-smooth chat-messages-container" style={{ height: '100%', overscrollBehavior: 'contain' }}>
+            {messages.length === 0 ? (
+              hasModels ? (
+                <div className="flex flex-col items-center justify-center h-[70%] text-center">
+                  <h2 className="text-2xl font-bold mb-3">有什么可以帮忙的?</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4 text-base max-w-md">
+                    开始一个新的对话，或从左侧历史记录中选择一个聊天
+                  </p>
+                </div>
               ) : (
-                messages.map((message: Message, index: number) => (
-                  <div
-                    key={index}
-                    className={`max-w-3xl mx-auto ${
-                      message.role === 'user'
-                        ? 'text-right'
-                        : ''
-                    }`}
-                  >
-                    <div className={`inline-block max-w-[85%] px-4 py-3 rounded-lg relative ${
-                      message.role === 'user'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                    }`}>
-                      <ReactMarkdown
-                        className="prose dark:prose-invert max-w-none"
-                        components={{
-                          code({ node, inline, className, children, ...props }: CodeProps) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
-                              <SyntaxHighlighter
-                                style={vscDarkPlus as any}
-                                language={match[1]}
-                                PreTag="div"
-                                {...props}
-                              >
-                                {String(children).replace(/\n$/, '')}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                      
-                      {/* AI回复消息的操作按钮 */}
-                      {message.role === 'assistant' && (
-                        <div className="flex mt-2 space-x-2 opacity-70 hover:opacity-100 transition-opacity">
-                          <button 
-                            className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded flex items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                            onClick={() => copyToClipboard(message.content)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            复制
-                          </button>
-                          <button 
-                            className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded flex items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                            onClick={() => regenerateResponse(index)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            重新生成
-                          </button>
-                          <button 
-                            className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-                            onClick={() => createArticleFromResponse(message.content)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            创建推文
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                <ModelSetupGuide />
+              )
+            ) : (
+              messages.map((message: Message, index: number) => (
+                <div
+                  key={index}
+                  className={`max-w-3xl mx-auto ${
+                    message.role === 'user'
+                      ? 'text-right'
+                      : ''
+                  }`}
+                >
+                  <div className={`inline-block max-w-[85%] px-4 py-3 rounded-lg relative ${
+                    message.role === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                  }`}>
+                    <ReactMarkdown
+                      className="prose dark:prose-invert max-w-none"
+                      components={{
+                        code({ node, inline, className, children, ...props }: CodeProps) {
+                          const match = /language-(\w+)/.exec(className || '');
+                          return !inline && match ? (
+                            <SyntaxHighlighter
+                              style={vscDarkPlus as any}
+                              language={match[1]}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                    
+                    {/* AI回复消息的操作按钮 */}
+                    {message.role === 'assistant' && (
+                      <div className="flex mt-2 space-x-2 opacity-70 hover:opacity-100 transition-opacity">
+                        <button 
+                          className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded flex items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          onClick={() => copyToClipboard(message.content)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          复制
+                        </button>
+                        <button 
+                          className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded flex items-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          onClick={() => regenerateResponse(index)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          重新生成
+                        </button>
+                        <button 
+                          className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                          onClick={() => createArticleFromResponse(message.content)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          创建推文
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ))
-              )}
-                {isLoading && (
-                <div className="max-w-3xl mx-auto">
-                  <div className="inline-block max-w-[85%] px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                    </div>
+                </div>
+              ))
+            )}
+              {isLoading && (
+              <div className="max-w-3xl mx-auto">
+                <div className="inline-block max-w-[85%] px-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {error && (
+              <div className="max-w-3xl mx-auto">
+                <div className="inline-block max-w-[85%] px-4 py-3 rounded-lg bg-red-50 text-red-700">
+                  <p className="font-medium">发生错误</p>
+                  <p className="text-sm">{error}</p>
                   </div>
                 </div>
               )}
-              {error && (
-                <div className="max-w-3xl mx-auto">
-                  <div className="inline-block max-w-[85%] px-4 py-3 rounded-lg bg-red-50 text-red-700">
-                    <p className="font-medium">发生错误</p>
-                    <p className="text-sm">{error}</p>
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+        {/* 输入区域 - 仿ChatGPT风格 */}
+        <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
+          <div className="max-w-3xl mx-auto relative">
+            <div className="relative rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm overflow-hidden bg-white dark:bg-gray-700">
+            <textarea
+                className="w-full px-4 py-3 border-0 focus:outline-none focus:ring-0 dark:bg-gray-700 dark:text-white resize-none min-h-[56px] max-h-[200px] text-base"
+                placeholder="输入你的问题..."
+                rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading || !hasModels}
+                style={{ lineHeight: '1.5' }}
+              />
+              
+              <div className="absolute right-2 bottom-2 flex items-center space-x-2">
+                {/* 附件上传按钮 */}
+                <button
+                  className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  onClick={toggleAttachment}
+                  disabled={isLoading}
+                  title="上传附件"
+                >
+                  <FaPaperclip size={16} />
+                </button>
+                
+                {/* 发送按钮 */}
+            <button
+                  className={`p-2 rounded-md ${input.trim() && !isLoading && hasModels ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+              onClick={sendMessage}
+                  disabled={!input.trim() || isLoading || !hasModels}
+                >
+                  <FaPaperPlane size={16} />
+                </button>
+              </div>
+            </div>
+            
+            {/* 附件上传区域 */}
+            {isAttachmentOpen && (
+              <div className="mt-2 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">附件上传</h3>
+                  <button 
+                    className="text-gray-500 hover:text-red-500"
+                    onClick={clearAttachments}
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                
+                <FileUploader 
+                  onFileSelect={handleFileSelect}
+                />
+                
+                {selectedFiles.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      已选择 {selectedFiles.length} 个文件
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedFiles.map((file: File, index: number) => (
+                        <div
+                          key={index}
+                          className="text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2 py-1 rounded flex items-center"
+                        >
+                          <span className="truncate max-w-[100px]">{file.name}</span>
+                          <button
+                            className="ml-1 text-gray-500 hover:text-red-500"
+                            onClick={() => {
+                              const newFiles = [...selectedFiles];
+                              newFiles.splice(index, 1);
+                              setSelectedFiles(newFiles);
+                            }}
+                          >
+                            <FaTimes size={10} />
+              </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
-            </div>
-
-          {/* 输入区域 - 仿ChatGPT风格 */}
-          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
-            <div className="max-w-3xl mx-auto relative">
-              <div className="relative rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm overflow-hidden bg-white dark:bg-gray-700">
-              <textarea
-                  className="w-full px-4 py-3 border-0 focus:outline-none focus:ring-0 dark:bg-gray-700 dark:text-white resize-none min-h-[56px] max-h-[200px] text-base"
-                  placeholder="输入你的问题..."
-                  rows={1}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={isLoading || !hasModels}
-                  style={{ lineHeight: '1.5' }}
-                />
-                
-                <div className="absolute right-2 bottom-2 flex items-center space-x-2">
-                  {/* 附件上传按钮 */}
-                  <button
-                    className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
-                    onClick={toggleAttachment}
-                    disabled={isLoading}
-                    title="上传附件"
-                  >
-                    <FaPaperclip size={16} />
-                  </button>
-                  
-                  {/* 发送按钮 */}
-              <button
-                    className={`p-2 rounded-md ${input.trim() && !isLoading && hasModels ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                onClick={sendMessage}
-                    disabled={!input.trim() || isLoading || !hasModels}
-                  >
-                    <FaPaperPlane size={16} />
-                  </button>
-                </div>
-              </div>
-              
-              {/* 附件上传区域 */}
-              {isAttachmentOpen && (
-                <div className="mt-2 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">附件上传</h3>
-                    <button 
-                      className="text-gray-500 hover:text-red-500"
-                      onClick={clearAttachments}
-                    >
-                      <FaTimes size={14} />
-                    </button>
-                  </div>
-                  
-                  <FileUploader 
-                    onFileSelect={handleFileSelect}
-                  />
-                  
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        已选择 {selectedFiles.length} 个文件
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedFiles.map((file: File, index: number) => (
-                          <div
-                            key={index}
-                            className="text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2 py-1 rounded flex items-center"
-                          >
-                            <span className="truncate max-w-[100px]">{file.name}</span>
-                            <button
-                              className="ml-1 text-gray-500 hover:text-red-500"
-                              onClick={() => {
-                                const newFiles = [...selectedFiles];
-                                newFiles.splice(index, 1);
-                                setSelectedFiles(newFiles);
-                              }}
-                            >
-                              <FaTimes size={10} />
-              </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="text-xs text-center text-gray-500 mt-2">
-                AI大模型也可能会犯错。检查重要信息的准确性。
-              </div>
+            )}
+            
+            <div className="text-xs text-center text-gray-500 mt-2">
+              AI大模型也可能会犯错。检查重要信息的准确性。
             </div>
           </div>
         </div>
       </div>
-    </ClientAuthCheck>
+    </div>
   );
 }

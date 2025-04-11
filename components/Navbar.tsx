@@ -1,11 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot, FaUser, FaSignOutAlt, FaSignInAlt, FaBars, FaTimes } from 'react-icons/fa';
-import { signIn, signOut, useSession } from 'next-auth/react';
-import { isLoggedIn } from '@/lib/auth';
+import { FaHome, FaNewspaper, FaCog, FaWeixin, FaRobot, FaBars, FaTimes } from 'react-icons/fa';
 
 // 内联样式定义
 const styles = {
@@ -66,9 +64,6 @@ const styles = {
     marginLeft: '32px',
     alignItems: 'center',
   },
-  mobileMenuHidden: {
-    display: 'none',
-  },
   navItem: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -118,111 +113,17 @@ const styles = {
   mobileNavItemInactive: {
     color: '#6b7280',
     borderLeft: '4px solid transparent',
-  },
-  srOnly: {
-    position: 'absolute' as const,
-    width: '1px',
-    height: '1px',
-    padding: '0',
-    margin: '-1px',
-    overflow: 'hidden',
-    clip: 'rect(0, 0, 0, 0)',
-    whiteSpace: 'nowrap' as const,
-    borderWidth: '0',
-  },
-  loginButton: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '8px 16px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    fontWeight: 'medium', 
-    color: '#4b5563',
-    textDecoration: 'none',
-    transition: 'all 0.2s',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-  },
-  userButton: {
-    display: 'flex', 
-    alignItems: 'center', 
-    padding: '8px 16px', 
-    backgroundColor: '#f3f4f6', 
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-  },
-  userMenu: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: '8px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    zIndex: 50,
-    width: '180px',
-    overflow: 'hidden'
-  },
-  logoutButton: {
-    display: 'flex',
-    alignItems: 'center',
-    width: '100%',
-    padding: '12px 18px',
-    fontSize: '0.95rem',
-    color: '#dc2626',
-    backgroundColor: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    textAlign: 'left' as const
   }
 };
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
-  
-  // 将useSession()替换为本地状态管理
-  const [session, setSession] = useState(null);
-  const [status, setStatus] = useState('loading');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    
-    // 检查localStorage中是否有用户信息
-    const checkUserState = () => {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        try {
-          const user = JSON.parse(userData);
-          setSession({ user });
-          setStatus('authenticated');
-          setUsername(user.username);
-          setIsUserLoggedIn(true);
-        } catch (e) {
-          console.error('无法解析用户数据', e);
-          setSession(null);
-          setStatus('unauthenticated');
-          setUsername(null);
-          setIsUserLoggedIn(false);
-        }
-      } else {
-        setSession(null);
-        setStatus('unauthenticated');
-        setUsername(null);
-        setIsUserLoggedIn(false);
-      }
-    };
-    
-    checkUserState();
     
     // 检测屏幕宽度
     const handleResize = () => {
@@ -231,32 +132,11 @@ export default function Navbar() {
     
     handleResize();
     window.addEventListener('resize', handleResize);
-    window.addEventListener('storage', checkUserState);
     
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('storage', checkUserState);
     };
   }, []);
-
-  // 模拟登出功能
-  const handleSignOut = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('session_token');
-    localStorage.removeItem('username');
-    setSession(null);
-    setStatus('unauthenticated');
-    setUsername(null);
-    setIsUserLoggedIn(false);
-    setShowUserMenu(false);
-    router.push('/');
-  };
-
-  // 模拟登录功能
-  const handleSignIn = () => {
-    localStorage.setItem('redirectUrl', pathname);
-    router.push('/login');
-  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -317,51 +197,6 @@ export default function Navbar() {
 
           {/* 移动端菜单按钮 */}
           <div className="flex items-center">
-            {isClient && !isUserLoggedIn ? (
-              <Link href="/login" style={styles.loginButton}>
-                <span className="mr-2">
-                  <FaSignInAlt />
-                </span>
-                登录
-              </Link>
-            ) : status !== 'loading' ? (
-              <div className="relative">
-                <button
-                  style={styles.userButton}
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                >
-                  <span className="mr-2">
-                    <FaUser />
-                  </span>
-                  {username || '用户'}
-                </button>
-
-                {showUserMenu && (
-                  <div style={styles.userMenu}>
-                    <Link
-                      href="/settings"
-                      className="flex items-center w-full py-3 px-4 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <span className="mr-2">
-                        <FaCog />
-                      </span>
-                      设置
-                    </Link>
-                    <button 
-                      style={styles.logoutButton}
-                      onClick={handleSignOut}
-                    >
-                      <span className="mr-2">
-                        <FaSignOutAlt />
-                      </span>
-                      退出登录
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
             {isClient && isMobile && (
               <button
                 style={styles.mobileMenuButton}

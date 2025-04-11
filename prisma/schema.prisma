@@ -7,21 +7,6 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-model User {
-  id            String        @id @default(uuid())
-  username      String        @unique
-  password      String
-  email         String?       @unique
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  articles      Article[]
-  chatHistories ChatHistory[]
-  chatModels    ChatModel[]
-  userConfig    UserConfig?
-
-  @@map("users")
-}
-
 model ChatModel {
   id        String   @id @default(uuid())
   name      String
@@ -31,53 +16,27 @@ model ChatModel {
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "chat_models_userId_fkey")
   @@map("chat_models")
-}
-
-model UserConfig {
-  id                      String   @id @default(uuid())
-  sessionToken            String?
-  wechatAppId             String?
-  wechatAppSecret         String?
-  wechatToken             String?
-  wechatEncodingAESKey    String?
-  defaultArticleAuthor    String?
-  defaultArticleCopyright String?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  userId                  String   @unique
-  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_configs")
 }
 
 model Article {
   id        String   @id @default(uuid())
   title     String
-  content   String   @db.Text
+  content   String
   status    String?  @default("草稿")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "articles_userId_fkey")
   @@map("articles")
 }
 
 model ChatHistory {
   id        String   @id @default(uuid())
   title     String
-  messages  String   @db.Text
+  messages  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "chat_histories_userId_fkey")
   @@map("chat_histories")
 }

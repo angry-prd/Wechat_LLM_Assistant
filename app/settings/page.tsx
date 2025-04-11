@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getCurrentUserId } from '@/lib/auth';
 import Toast from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -18,7 +17,6 @@ interface ModelConfig {
 
 export default function Settings() {
   const router = useRouter();
-  const [isSessionLoaded, setIsSessionLoaded] = useState(false);
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
@@ -32,7 +30,6 @@ export default function Settings() {
   // 添加编辑模型和模态框状态
   const [editingModel, setEditingModel] = useState<null | ModelConfig>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userId, setUserId] = useState('');
   
   // 表单状态
   const [formData, setFormData] = useState({
@@ -48,11 +45,7 @@ export default function Settings() {
   const fetchModels = async () => {
     try {
       setIsLoading(true);
-      // 获取当前登录用户ID
-      const currentUserId = getCurrentUserId();
-      setUserId(currentUserId);
-      
-      const response = await fetch(`/api/chat-models?userId=${currentUserId}`);
+      const response = await fetch('/api/chat-models');
       const result = await response.json();
       
       if (result.success) {
@@ -73,11 +66,7 @@ export default function Settings() {
   };
   
   useEffect(() => {
-    // 只在客户端渲染时加载模型配置
-    if (typeof window !== 'undefined') {
-      setIsSessionLoaded(true);
-      fetchModels();
-    }
+    fetchModels();
   }, []);
   
   // 打开新建模型表单
@@ -127,28 +116,15 @@ export default function Settings() {
       const url = '/api/chat-models';
       const method = editingModel ? 'PUT' : 'POST';
       
-      // 确保包含用户ID
-      const dataWithUserId = {
-        ...formData,
-        userId: userId
-      };
-      
-      console.log('正在保存模型配置:', {
-        method,
-        ...dataWithUserId,
-        apiKey: dataWithUserId.apiKey ? '******' : '(未提供)'
-      });
-      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(dataWithUserId)
+        body: JSON.stringify(formData)
       });
       
       const result = await response.json();
-      console.log('模型保存响应:', result);
       
       if (result.success) {
         setIsModalOpen(false);
@@ -193,17 +169,18 @@ export default function Settings() {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`/api/chat-models?id=${confirmDialog.modelId}`, {
+      const response = await fetch(`/api/chat-models/${confirmDialog.modelId}`, {
         method: 'DELETE'
       });
       
       const result = await response.json();
       
       if (result.success) {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
         fetchModels(); // 重新加载模型列表
         setToast({
           visible: true,
-          message: '模型已成功删除',
+          message: '模型配置已删除',
           type: 'success'
         });
       } else {
@@ -222,193 +199,143 @@ export default function Settings() {
       });
     } finally {
       setIsLoading(false);
-      // 关闭确认对话框
-      setConfirmDialog({...confirmDialog, isOpen: false});
+      setConfirmDialog({ ...confirmDialog, isOpen: false });
     }
   };
-  
+
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
-      <Toast 
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type as 'success' | 'error' | 'info'}
-        onClose={() => setToast({ ...toast, visible: false })}
-      />
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">系统设置</h1>
       
-      <ConfirmDialog 
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmDialog({...confirmDialog, isOpen: false})}
-      />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-col overflow-hidden">
-          <div className="flex flex-col flex-1 bg-gray-50 p-6 overflow-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold">系统配置</h1>
-            </div>
-            
-            {/* 配置类型选项卡 */}
-            <div className="flex border-b border-gray-200 mb-6">
-              <div className="mr-6">
-                <button
-                  className="py-2 px-1 border-b-2 border-blue-500 font-medium text-blue-600"
-                >
-                  AI模型配置
-                </button>
-              </div>
-              <div>
-                <Link href="/settings/wechat">
-                  <button
-                    className="py-2 px-1 border-b-2 border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  >
-                    微信公众号配置
-                  </button>
-                </Link>
-              </div>
-            </div>
-            
-            {/* 模型列表 */}
-            <div className="mb-6">
-              <div className="flex space-x-4 mb-4">
-                <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={openNewModelForm}
-                >
-                  添加模型
-                </button>
-              </div>
-              
-              {models.length === 0 ? (
-                <div className="text-center py-8 bg-white rounded-lg shadow">
-                  <p className="text-gray-500">暂无模型配置，请点击添加模型按钮创建</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {models.map((model) => (
-                    <div key={model.id} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-medium">{model.name}</h3>
-                        {model.isDefault && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">默认</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">{model.model}</p>
-                      <p className="text-sm text-gray-500 mt-1 truncate">{model.endpoint}</p>
-                      <div className="mt-4 flex space-x-2">
-                        <button
-                          onClick={() => openEditModelForm(model)}
-                          className="text-sm px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                        >
-                          编辑
-                        </button>
-                        <button
-                          onClick={() => deleteModel(model.id)}
-                          className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                        >
-                          删除
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">AI模型配置</h2>
+          <button
+            onClick={openNewModelForm}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            添加模型
+          </button>
         </div>
+        
+        {isLoading ? (
+          <div className="text-center py-8">加载中...</div>
+        ) : models.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            暂无模型配置，请添加新的模型
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {models.map((model) => (
+              <div
+                key={model.id}
+                className="border rounded-lg p-4 flex justify-between items-center"
+              >
+                <div>
+                  <h3 className="font-semibold">{model.name}</h3>
+                  <p className="text-sm text-gray-600">{model.endpoint}</p>
+                  <p className="text-sm text-gray-600">模型: {model.model}</p>
+                  {model.isDefault && (
+                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                      默认模型
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openEditModelForm(model)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => deleteModel(model.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      
+
       {/* 模型配置表单模态框 */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingModel ? '编辑模型配置' : '添加新模型'}
-            </h2>
-            
+            <h3 className="text-xl font-semibold mb-4">
+              {editingModel ? '编辑模型' : '添加新模型'}
+            </h3>
             <form onSubmit={saveModelConfig}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">模型名称</label>
+                <label className="block text-sm font-medium mb-1">名称</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="例如: GPT-3.5"
+                  className="w-full border rounded px-3 py-2"
                   required
                 />
               </div>
-              
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">API密钥</label>
+                <label className="block text-sm font-medium mb-1">API密钥</label>
                 <input
                   type="password"
                   name="apiKey"
                   value={formData.apiKey}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   required={!editingModel}
-                  placeholder={editingModel ? '留空表示不修改' : '例如: sk-...'}
                 />
               </div>
-              
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">API端点</label>
+                <label className="block text-sm font-medium mb-1">接口地址</label>
                 <input
                   type="text"
                   name="endpoint"
                   value={formData.endpoint}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="例如: https://api.openai.com/v1/chat/completions"
+                  className="w-full border rounded px-3 py-2"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">OpenAI API使用: https://api.openai.com/v1/chat/completions</p>
               </div>
-              
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">模型标识符</label>
+                <label className="block text-sm font-medium mb-1">模型名称</label>
                 <input
                   type="text"
                   name="model"
                   value={formData.model}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="例如: gpt-3.5-turbo"
+                  className="w-full border rounded px-3 py-2"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">OpenAI模型: gpt-3.5-turbo, gpt-4, gpt-4-turbo等</p>
               </div>
-              
-              <div className="mb-4 flex items-center">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  name="isDefault"
-                  checked={formData.isDefault}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-700">
-                  设为默认模型
+              <div className="mb-6">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isDefault"
+                    checked={formData.isDefault}
+                    onChange={handleInputChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">设为默认模型</span>
                 </label>
               </div>
-              
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end gap-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   disabled={isLoading}
                 >
                   {isLoading ? '保存中...' : '保存'}
@@ -417,6 +344,25 @@ export default function Settings() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 删除确认对话框 */}
+      {confirmDialog.isOpen && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        />
+      )}
+
+      {/* 提示消息 */}
+      {toast.visible && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, visible: false })}
+        />
       )}
     </div>
   );

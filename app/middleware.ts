@@ -45,12 +45,18 @@ export function middleware(request: NextRequest) {
   // 获取路径
   const path = request.nextUrl.pathname;
   
+  // 对于静态资源和favicon，直接放行
+  if (
+    path.startsWith('/_next/') ||
+    path.includes('favicon.ico')
+  ) {
+    return NextResponse.next();
+  }
+  
   // 检查是否是公共页面或介绍页面，直接放行
   if (
     publicPages.some(p => path === p) || 
-    introPages.some(introPath => path.startsWith(introPath)) ||
-    path.startsWith('/_next/') ||
-    path.includes('favicon.ico')
+    introPages.some(introPath => path.startsWith(introPath))
   ) {
     return NextResponse.next();
   }
