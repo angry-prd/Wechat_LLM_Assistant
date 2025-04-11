@@ -270,10 +270,10 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { name: '首页', path: '/' },
-    { name: 'AI聊天', path: '/ai-chat' },
-    { name: '文章管理', path: '/articles' },
-    { name: '设置', path: '/settings' },
+    { name: '首页', path: '/', icon: FaHome },
+    { name: 'AI聊天', path: '/ai-chat', icon: FaRobot },
+    { name: '推文管理', path: '/articles', icon: FaNewspaper },
+    { name: '系统设置', path: '/settings', icon: FaCog },
   ];
 
   return (
@@ -297,60 +297,21 @@ export default function Navbar() {
                 display: isClient && !isMobile ? 'flex' : 'none',
               }}
             >
-              <Link
-                href="/"
-                style={{
-                  ...styles.navItem,
-                  ...(isActive('/') ? styles.navItemActive : styles.navItemInactive),
-                }}
-              >
-                <span className="mr-2">
-                  <FaHome />
-                </span>
-                首页
-              </Link>
-              <Link
-                href="/ai-chat"
-                style={{
-                  ...styles.navItem,
-                  ...(isActive('/ai-chat')
-                    ? styles.navItemActive
-                    : styles.navItemInactive),
-                }}
-              >
-                <span className="mr-2">
-                  <FaRobot />
-                </span>
-                AI聊天
-              </Link>
-              <Link
-                href="/editor"
-                style={{
-                  ...styles.navItem,
-                  ...(isActive('/editor')
-                    ? styles.navItemActive
-                    : styles.navItemInactive),
-                }}
-              >
-                <span className="mr-2">
-                  <FaNewspaper />
-                </span>
-                编辑器
-              </Link>
-              <Link
-                href="/publish"
-                style={{
-                  ...styles.navItem,
-                  ...(isActive('/publish')
-                    ? styles.navItemActive
-                    : styles.navItemInactive),
-                }}
-              >
-                <span className="mr-2">
-                  <FaWeixin />
-                </span>
-                发布
-              </Link>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  href={link.path}
+                  style={{
+                    ...styles.navItem,
+                    ...(isActive(link.path) ? styles.navItemActive : styles.navItemInactive),
+                  }}
+                >
+                  <span className="mr-2">
+                    <link.icon />
+                  </span>
+                  {link.name}
+                </Link>
+              ))}
             </div>
           </div>
 
@@ -425,64 +386,22 @@ export default function Navbar() {
         {/* 移动端导航菜单 */}
         {isClient && isMobile && isMobileMenuOpen && (
           <div style={styles.mobileMenu}>
-            <Link
-              href="/"
-              style={{
-                ...styles.mobileNavItem,
-                ...(isActive('/') ? styles.mobileNavItemActive : styles.mobileNavItemInactive),
-              }}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <span className="mr-3">
-                <FaHome />
-              </span>
-              首页
-            </Link>
-            <Link
-              href="/ai-chat"
-              style={{
-                ...styles.mobileNavItem,
-                ...(isActive('/ai-chat')
-                  ? styles.mobileNavItemActive
-                  : styles.mobileNavItemInactive),
-              }}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <span className="mr-3">
-                <FaRobot />
-              </span>
-              AI聊天
-            </Link>
-            <Link
-              href="/editor"
-              style={{
-                ...styles.mobileNavItem,
-                ...(isActive('/editor')
-                  ? styles.mobileNavItemActive
-                  : styles.mobileNavItemInactive),
-              }}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <span className="mr-3">
-                <FaNewspaper />
-              </span>
-              编辑器
-            </Link>
-            <Link
-              href="/publish"
-              style={{
-                ...styles.mobileNavItem,
-                ...(isActive('/publish')
-                  ? styles.mobileNavItemActive
-                  : styles.mobileNavItemInactive),
-              }}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <span className="mr-3">
-                <FaWeixin />
-              </span>
-              发布
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                href={link.path}
+                style={{
+                  ...styles.mobileNavItem,
+                  ...(isActive(link.path) ? styles.mobileNavItemActive : styles.mobileNavItemInactive),
+                }}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <span className="mr-3">
+                  <link.icon />
+                </span>
+                {link.name}
+              </Link>
+            ))}
           </div>
         )}
       </div>
